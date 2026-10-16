@@ -150,6 +150,11 @@ export default function AboutPage() {
           Unsubscribe removes that signup. Mail goes out through Resend when <span className="font-mono">RESEND_API_KEY</span>{" "}
           is set. If the key is missing, signups are stored and no mail is sent.
         </p>
+        <p>
+          Addresses and confirmation tokens are not in the public catalog or the search index. On Vercel they are
+          stored apart from the snapshot: private Blob access when the store accepts it, otherwise an unguessable
+          pathname that the site never links to. The catalog snapshot stays public.
+        </p>
       </section>
     </main>
   );

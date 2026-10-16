@@ -1,15 +1,11 @@
+import { authorizeCron } from "@/lib/cron-auth";
 import { runSync } from "@/lib/sync/run";
 
 export const maxDuration = 300;
 
 async function handle(request: Request) {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (secret) {
-    const header = request.headers.get("authorization");
-    if (header !== `Bearer ${secret}`) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
+  const denied = authorizeCron(request, process.env);
+  if (denied) return denied;
   try {
     const report = await runSync();
     const required = ["rpcs3", "shadps4", "sharpemu"];

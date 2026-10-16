@@ -1,8 +1,16 @@
 import { readFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
-import { get, put } from "@vercel/blob";
-import { BLOB_WATCHLIST, watchlistPath } from "@/lib/paths";
+import { del, get, put } from "@vercel/blob";
+import { BLOB_WATCHLIST_LEGACY, watchlistPath } from "@/lib/paths";
 import { writeJsonAtomic } from "@/lib/catalog-store";
+import {
+  isSoftBlobMiss,
+  loadWatchlistBlobText,
+  storeWatchlistBlob,
+  watchlistBlobPathname,
+  watchlistBlobToken,
+  type BlobAccessMode,
+} from "@/lib/watchlist-blob";
 
 export type Subscription = {
   id: string;
@@ -32,22 +40,56 @@ function exclusive<T>(task: () => Promise<T>): Promise<T> {
   return run;
 }
 
-function token() {
-  return process.env.BLOB_READ_WRITE_TOKEN?.trim() || "";
+let blobAccess: BlobAccessMode | null = null;
+
+function parseStore(text: string): WatchStore {
+  let parsed: WatchStore;
+  try {
+    parsed = JSON.parse(text) as WatchStore;
+  } catch {
+    throw new Error("Could not store the watchlist. The saved file was not valid JSON.");
+  }
+  if (!parsed || !Array.isArray(parsed.subscriptions)) {
+    throw new Error("Could not store the watchlist. The saved file was not a watchlist.");
+  }
+  return parsed;
 }
 
 async function readBlob(): Promise<WatchStore | null> {
-  const blobToken = token();
-  if (!blobToken) return null;
-  const result = await get(BLOB_WATCHLIST, {
-    access: "private",
-    token: blobToken,
-    useCache: false,
+  const token = watchlistBlobToken();
+  const pathname = watchlistBlobPathname();
+  if (!token || !pathname) return null;
+  const loaded = await loadWatchlistBlobText({
+    pathname,
+    token,
+    access: blobAccess,
+    get: (path, options) => get(path, options),
+    legacyPathname: BLOB_WATCHLIST_LEGACY,
   });
-  if (!result || result.statusCode !== 200 || !result.stream) return null;
-  const parsed = JSON.parse(await new Response(result.stream).text()) as WatchStore;
-  if (!Array.isArray(parsed.subscriptions)) return null;
-  return parsed;
+  blobAccess = loaded.access;
+  if (loaded.text === null) {
+    await deleteLegacy();
+    return null;
+  }
+  const store = parseStore(loaded.text);
+  if (loaded.fromLegacy) await writeBlob(store);
+  else await deleteLegacy();
+  return store;
+}
+
+function blobTokens(): string[] {
+  const catalog = process.env.BLOB_READ_WRITE_TOKEN?.trim() || "";
+  return [...new Set([watchlistBlobToken(), catalog].filter(Boolean))];
+}
+
+async function deleteLegacy() {
+  for (const token of blobTokens()) {
+    try {
+      await del(BLOB_WATCHLIST_LEGACY, { token });
+    } catch (error) {
+      if (!isSoftBlobMiss(error)) console.error("Could not delete the legacy watchlist blob.");
+    }
+  }
 }
 
 function readFile(): WatchStore | null {
@@ -71,18 +113,25 @@ async function writeWatchlist(store: WatchStore) {
   } catch (error) {
     fileError = error;
   }
-  const blobToken = token();
-  if (blobToken) {
-    await put(BLOB_WATCHLIST, JSON.stringify(store), {
-      access: "private",
-      token: blobToken,
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-    return;
-  }
+  if (await writeBlob(store)) return;
   if (fileError) throw fileError;
+}
+
+async function writeBlob(store: WatchStore): Promise<boolean> {
+  const token = watchlistBlobToken();
+  const pathname = watchlistBlobPathname();
+  if (!token || !pathname) return false;
+  blobAccess = await storeWatchlistBlob({
+    pathname,
+    body: JSON.stringify(store),
+    token,
+    access: blobAccess,
+    legacyPathname: BLOB_WATCHLIST_LEGACY,
+    put: (path, body, options) => put(path, body, options),
+    del: (path, options) => del(path, options),
+  });
+  await deleteLegacy();
+  return true;
 }
 
 export function normalizeEmail(email: string) {

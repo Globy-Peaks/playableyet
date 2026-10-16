@@ -33,15 +33,17 @@ The sync exits with status 1 if RPCS3, shadPS4, or SharpEmu fail. fpPS4, KytyPS5
 
 ## Environment
 
-Copy `.env.example` to `.env.local`. Every variable is optional.
+Copy `.env.example` to `.env.local`. Every variable is optional for local `next dev`. Production must set `CRON_SECRET`.
 
 | Variable | Role |
 | --- | --- |
 | `GITHUB_TOKEN` | GitHub API auth for the sync. |
 | `RESEND_API_KEY` | Sends double opt-in and “now playable” mail. If unset, signups are stored and no mail is sent. |
 | `RESEND_FROM` | From address. Defaults to `PlayableYet <onboarding@resend.dev>`. |
-| `CRON_SECRET` | When set, `GET` and `POST /api/cron/sync` require `Authorization: Bearer <secret>`. |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token. Lets cron publish a new catalog. Watchlist signups are stored in a private blob when this is set. |
+| `CRON_SECRET` | Required in production. `GET` and `POST /api/cron/sync` require `Authorization: Bearer <secret>`. A missing secret is rejected when `NODE_ENV` or `VERCEL_ENV` is `production`. Local `next dev` allows the route only while the secret is unset. |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token. Lets cron publish the public catalog. Also used for the watchlist when no dedicated watchlist token is set. |
+| `WATCHLIST_BLOB_READ_WRITE_TOKEN` | Optional token for a private Blob store that holds only watchlist signups. Writes use `access: "private"`. |
+| `WATCHLIST_BLOB_SECRET` | Optional stable secret. The watchlist pathname is a SHA-256 of this value. When unset, the pathname is derived from the watchlist token or `BLOB_READ_WRITE_TOKEN`. Set this before rotating tokens so existing signups stay reachable. |
 | `NEXT_PUBLIC_SITE_URL` | Canonical origin for the sitemap, Open Graph tags, and email links. |
 
 ## Where data lives
@@ -54,15 +56,21 @@ The simplest store that works on Vercel is a JSON snapshot:
 
 The first snapshot is committed so the site works with no database. Later syncs append history when a status changes. The first observation of a report is marked initial and does not show up as a status change.
 
-On Vercel the filesystem is read-only, so cron cannot rewrite those files. Set `BLOB_READ_WRITE_TOKEN` and the job writes `playableyet/catalog.json` and `playableyet/search-index.json`. The site prefers the blob when the token is present and falls back to the committed files.
+On Vercel the filesystem is read-only, so cron cannot rewrite those files. Set `BLOB_READ_WRITE_TOKEN` and the job writes `playableyet/catalog.json` and `playableyet/search-index.json` with `access: "public"`. The site prefers the blob when the token is present and falls back to the committed files. Those two objects are the public snapshot. They do not contain email addresses or watch tokens.
 
-Watch signups are not part of the catalog. They live in gitignored `data/watchlist.json` locally, and in a private blob `playableyet/watchlist.json` when the token is set. A signup stays pending until the confirmation link is opened. Unsubscribe deletes it. A playable transition notifies confirmed addresses once per project, and only when Resend is configured.
+Watch signups are not part of the catalog. Locally they live in gitignored `data/watchlist.json`. On Vercel they are stored in Blob, but never at the guessable pathname `playableyet/watchlist.json`. The pathname is `playableyet/watch/<sha256>.json`. The hash covers a fixed prefix plus `WATCHLIST_BLOB_SECRET`, or the watchlist token when that secret is unset. The site does not return, link, or log that URL.
+
+`@vercel/blob` supports `access: "private"`. The write tries private first. Private blobs are served from `*.private.blob.vercel-storage.com` and require the read-write token, which is what you want for emails. The project’s current Blob store is public, and a public store rejects private blobs. When the error says the store access does not match, the same unguessable pathname is written with `access: "public"`. Anyone who already has that URL can read it, so it stays unlinked. A private store is the stronger setup: create one and set `WATCHLIST_BLOB_READ_WRITE_TOKEN`. Catalog publishes keep using the public token.
+
+Each successful watchlist read or write deletes `playableyet/watchlist.json` if an older build left it behind. A signup stays pending until the confirmation link is opened. Unsubscribe deletes it. A playable transition notifies confirmed addresses once per project, and only when Resend is configured.
+
+`/llms.txt` and `/llms-full.txt` describe the site, sources, statuses, and URL patterns for AI tools. Game pages include schema.org `VideoGame` structured data with each project’s status id.
 
 ## Deploy on Vercel
 
 1. Import the repository as a Next.js project.
 2. Add the environment variables you want. `BLOB_READ_WRITE_TOKEN` is what makes the daily job stick. Create a Blob store in the project and use its read-write token.
-3. `vercel.json` schedules `/api/cron/sync` at `15 6 * * *` (06:15 UTC). Vercel Cron sends `Authorization: Bearer $CRON_SECRET` when that variable exists.
+3. `vercel.json` schedules `/api/cron/sync` at `15 6 * * *` (06:15 UTC). Set `CRON_SECRET` in the production environment. Vercel Cron sends `Authorization: Bearer $CRON_SECRET`. The route rejects the call when that header does not match, and it also rejects the call in production when `CRON_SECRET` is unset.
 4. The route allows up to 300 seconds (`maxDuration`). Hobby cron invocations are shorter than that, so a full unauthenticated sync can run out of time. Run `npm run sync` locally and commit the JSON, or use a plan and a `GITHUB_TOKEN` that can finish inside the limit.
 
 ## What could not be fully synced

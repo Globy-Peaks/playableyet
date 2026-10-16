@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EMULATORS } from "@/lib/emulators";
+import { matchesSearchFilters } from "@/lib/search-filters";
 import { STATUS_LABEL } from "@/lib/status";
 import { EMULATOR_IDS, PLATFORMS, STATUSES, type SearchEntry } from "@/lib/types";
 import { StatusBadge } from "@/components/status-badge";
@@ -56,14 +57,9 @@ export function GameBrowser() {
   const filtered = useMemo(() => {
     if (!entries) return [];
     const needle = query.trim().toLowerCase();
-    return entries.filter((entry) => {
-      if (platform && !entry.platforms.includes(platform as SearchEntry["platforms"][number])) return false;
-      if (emulator && !entry.reports.some((report) => report.emulator === emulator)) return false;
-      if (status && !entry.reports.some((report) => report.status === status)) return false;
-      if (!needle) return true;
-      if (entry.name.toLowerCase().includes(needle)) return true;
-      return entry.ids.some((id) => id.toLowerCase().includes(needle));
-    });
+    return entries.filter((entry) =>
+      matchesSearchFilters(entry, { query: needle, platform, emulator, status }),
+    );
   }, [entries, query, platform, emulator, status]);
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));

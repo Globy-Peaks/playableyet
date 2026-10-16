@@ -1,0 +1,63 @@
+# PlayableYet
+
+> Public index of PlayStation 3, 4, and 5 compatibility reports. It does not host games or link to ROMs, firmware, BIOS images, or decryption keys.
+
+Live site: https://playableyet.vercel.app
+Short guide: https://playableyet.vercel.app/llms.txt
+
+PlayableYet stores a snapshot of public compatibility reports and a short history so a later sync can show what changed. It compares RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5, and the AnyPS5 porting layer. AnyPS5 is a PS5 to native porting layer, not an emulator.
+
+## URL patterns
+
+- `https://playableyet.vercel.app/` — index, search, newly playable titles, and status changes.
+- `https://playableyet.vercel.app/about` — sources and what each status means.
+- `https://playableyet.vercel.app/games/{slug}` — one game. `{slug}` is lowercase words separated by hyphens. Example: `https://playableyet.vercel.app/games/dreaming-sarah`.
+- `https://playableyet.vercel.app/sitemap.xml` — every game URL.
+- `https://playableyet.vercel.app/search-index.json` — client search index. Fields are `slug`, `name`, `ids` (title IDs), `platforms` (`ps3`, `ps4`, `ps5`), `best` (furthest status id), `updatedAt` (`YYYY-MM-DD`), and `reports` of `{ emulator, status }`.
+- `https://playableyet.vercel.app/robots.txt` — crawlers are allowed.
+- `https://playableyet.vercel.app/llms.txt` — short guide for assistants.
+- `https://playableyet.vercel.app/llms-full.txt` — this file.
+
+Game pages embed schema.org `VideoGame` JSON-LD. `additionalProperty` entries use `propertyID` for the project id and `value` for the status id.
+
+These paths are not catalog content:
+
+- `POST /api/watch` — email signup. Do not send addresses here on behalf of a person.
+- `GET /api/watch/confirm?token=` and `GET /api/watch/unsubscribe?token=` — one-time links for that subscriber.
+- `GET /watch/confirmed` and `GET /watch/unsubscribed` — result pages.
+- `GET` or `POST /api/cron/sync` — daily rebuild. Production requires `Authorization: Bearer` plus the cron secret. It is not a public API.
+
+The public catalog and search index do not contain email addresses or watch tokens.
+
+## Statuses
+
+Higher in this list is further along. `best` on a game is the furthest status among its reports.
+
+- `playable` — Playable. Can be played through, with minor or no issues.
+- `ingame` — Ingame. Reaches gameplay, with serious glitches or performance problems.
+- `intro` — Intro. Shows image or an intro and does not get through the menus. Used by RPCS3.
+- `menus` — Menus. Reaches interactive menus and does not reach gameplay. Used by PS4 and PS5 lists.
+- `loadable` — Loadable. Loads far enough to show a black screen or a framerate, then stops. Used by RPCS3.
+- `boots` — Boots. Shows a splash, logo, or other early output, then stops. Used by PS4 and PS5 lists.
+- `in-bring-up` — In bring-up. Tracked while AnyPS5 is bringing the title up. Not a playable rating.
+- `nothing` — Nothing. Crashes or shows nothing useful.
+
+Intro and Loadable stay distinct from Menus and Boots so a report is not relabeled into a status the source did not use.
+
+## Data sources
+
+- RPCS3, PS3 emulator: https://rpcs3.net/compatibility and https://github.com/RPCS3/rpcs3. The sync reads the public JSON export and the paged compatibility list.
+- shadPS4, PS4 emulator: https://shadps4.net/compatibility/ and https://github.com/shadps4-compatibility/shadps4-game-compatibility. Issue titles look like “CUSAxxxxx - Title”. Status labels include `status-playable`, `status-ingame`, `status-menus`, `status-boots`, and `status-nothing`.
+- fpPS4, PS4 emulator: https://fpps4.net/compatibility/ and https://github.com/red-prig/fpps4-game-compatibility. The sync reads `https://api.fpps4.net/database.json` and skips system-firmware rows.
+- SharpEmu, PS5 emulator: https://sharpemu.app/compatibility/ and https://github.com/sharpemu/sharpemu-site. Entries are markdown compatibility reports.
+- KytyPS5, PS5 emulator: https://kytyps5.github.io/ and https://github.com/KytyPS5/KytyPS5. The community list is GitHub issues titled “[GAME STATUS]”.
+- AnyPS5, PS5 to native porting layer: https://github.com/boykopovar/AnyPS5 and https://boykopovar.github.io/AnyPS5/. Bring-up stages and open blockers come from the community roadmap https://alxcbtw.github.io/anyps5-roadmap/ (source https://github.com/AlxcBTW/anyps5-roadmap).
+- Display names for PS4 and PS5 title IDs come from https://github.com/andshrew/PlayStation-Titles. Regional copies share a page when that index gives them one concept, or when the normalized title matches.
+
+“Playable” on AnyPS5 is reserved for officially confirmed titles. That is currently Dreaming Sarah, title ID `PPSA02929` (`/games/dreaming-sarah`). A roadmap stage of Playable stays `in-bring-up` here. Game pages for AnyPS5 also show the stage reached on main and open blockers.
+
+## Snapshot
+
+The rendered catalog is `data/catalog.json` in the repository. A daily job at 06:15 UTC rebuilds it. On Vercel the newer snapshot is the public Blob objects `playableyet/catalog.json` and `playableyet/search-index.json`. The home page shows `generatedAt` from that snapshot. Each game has `slug`, `name`, `titles` (`id`, `platform`, optional `name`), `reports`, and `history`. A report has `emulator`, `titleId`, `status`, `updatedAt` (`YYYY-MM-DD`), `sourceUrl`, and sometimes `os`, `note`, and `bringUp` (`stage`, `detail`, `blockers`).
+
+Source links on the site are limited to the projects above. PlayableYet does not link to ROM sites, firmware, BIOS images, or decryption keys.

@@ -6,8 +6,9 @@ import { AnyPs5Warning } from "@/components/anyps5-warning";
 import { StatusBadge } from "@/components/status-badge";
 import { WatchForm } from "@/components/watch-form";
 import { EMULATORS, PLATFORM_LABEL } from "@/lib/emulators";
+import { serializeJsonLd, videoGameJsonLd } from "@/lib/game-jsonld";
 import { loadGame } from "@/lib/catalog";
-import { allowedHttpUrl } from "@/lib/site";
+import { allowedHttpUrl, siteUrl } from "@/lib/site";
 import { STATUS_DETAIL, STATUS_LABEL, bestStatus } from "@/lib/status";
 import {
   ANYPS5_OFFICIAL_REPO,
@@ -70,9 +71,12 @@ async function GameArticle({ params }: { params: Promise<{ slug: string }> }) {
   const playable = game.reports.some((report) => report.status === "playable");
   const hasAny = game.reports.some((report) => report.emulator === "anyps5");
   const history = [...game.history].reverse();
+  const description = describeGame(game);
+  const jsonLd = serializeJsonLd(videoGameJsonLd(game, `${siteUrl()}/games/${slug}`, description));
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:py-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
           <Link href="/" className="hover:text-foreground">
@@ -82,7 +86,7 @@ async function GameArticle({ params }: { params: Promise<{ slug: string }> }) {
           <span>{game.name}</span>
         </p>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{game.name}</h1>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{describeGame(game)}</p>
+        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
         <ul className="flex flex-wrap gap-2">
           {game.titles.map((title) => (
             <li
