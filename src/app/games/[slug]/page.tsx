@@ -6,10 +6,11 @@ import { AnyPs5Warning } from "@/components/anyps5-warning";
 import { StatusBadge } from "@/components/status-badge";
 import { WatchForm } from "@/components/watch-form";
 import { EMULATORS, PLATFORM_LABEL } from "@/lib/emulators";
+import { gameSeoDescription, gameSeoTitle } from "@/lib/game-seo";
 import { serializeJsonLd, videoGameJsonLd } from "@/lib/game-jsonld";
 import { loadGame } from "@/lib/catalog";
 import { allowedHttpUrl, siteUrl } from "@/lib/site";
-import { STATUS_DETAIL, STATUS_LABEL, bestStatus } from "@/lib/status";
+import { STATUS_DETAIL, bestStatus } from "@/lib/status";
 import {
   ANYPS5_OFFICIAL_REPO,
   ANYPS5_OFFICIAL_SITE,
@@ -17,7 +18,7 @@ import {
   ANYPS5_ROADMAP_SITE,
   anyps5RoadmapGameUrl,
 } from "@/lib/sync/anyps5";
-import { EMULATOR_IDS, PLATFORMS, type BringUp, type Game, type Platform, type Status } from "@/lib/types";
+import { EMULATOR_IDS, PLATFORMS, type BringUp, type Game, type Platform } from "@/lib/types";
 import { readCatalogFile } from "@/lib/catalog-store";
 
 export async function generateStaticParams() {
@@ -40,18 +41,19 @@ export async function generateMetadata({ params }: PageProps<"/games/[slug]">): 
   const { slug } = await params;
   const game = await loadGame(slug);
   if (!game) return { title: "Game not found" };
-  const description = describeGame(game);
+  const title = gameSeoTitle(game.name);
+  const description = gameSeoDescription(game);
   return {
-    title: game.name,
+    title,
     description,
     alternates: { canonical: `/games/${slug}` },
     openGraph: {
-      title: `${game.name} · PlayableYet`,
+      title,
       description,
       url: `/games/${slug}`,
       type: "article",
     },
-    twitter: { card: "summary", title: game.name, description },
+    twitter: { card: "summary", title, description },
   };
 }
 
@@ -71,7 +73,7 @@ async function GameArticle({ params }: { params: Promise<{ slug: string }> }) {
   const playable = game.reports.some((report) => report.status === "playable");
   const hasAny = game.reports.some((report) => report.emulator === "anyps5");
   const history = [...game.history].reverse();
-  const description = describeGame(game);
+  const description = gameSeoDescription(game);
   const jsonLd = serializeJsonLd(videoGameJsonLd(game, `${siteUrl()}/games/${slug}`, description));
 
   return (
@@ -290,21 +292,6 @@ function AnyPs5Links({ titleId, evidenceUrl }: { titleId: string; evidenceUrl: s
       ) : null}
     </ul>
   );
-}
-
-function describeGame(game: Game) {
-  const bits = EMULATOR_IDS.flatMap((id) => {
-    const reports = game.reports.filter((report) => report.emulator === id);
-    const status = bestStatus(reports.map((report) => report.status));
-    if (!status) return [];
-    return [`${EMULATORS[id].name} ${statusLabel(status)}`];
-  });
-  if (bits.length === 0) return `${game.name} has no public compatibility report in this snapshot.`;
-  return `${game.name}: ${bits.join(", ")}.`;
-}
-
-function statusLabel(status: Status) {
-  return STATUS_LABEL[status];
 }
 
 function GameFallback() {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { siteUrl } from "@/lib/site";
+import { SITE_DESCRIPTION, siteUrl } from "@/lib/site";
 import "./globals.css";
 
 const sans = Geist({
@@ -15,19 +15,24 @@ const mono = Geist_Mono({
   variable: "--font-geist-mono",
 });
 
-const description =
-  "Playable status for PlayStation 3, 4, and 5 games across RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5, and the AnyPS5 porting layer.";
-
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: {
     default: "PlayableYet",
     template: "%s · PlayableYet",
   },
-  description,
+  description: SITE_DESCRIPTION,
+  alternates: {
+    types: {
+      "text/plain": [
+        { url: "/llms.txt", title: "llms.txt" },
+        { url: "/llms-full.txt", title: "llms-full.txt" },
+      ],
+    },
+  },
   openGraph: {
     title: "PlayableYet",
-    description,
+    description: SITE_DESCRIPTION,
     siteName: "PlayableYet",
     type: "website",
     url: "/",
@@ -35,7 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary",
     title: "PlayableYet",
-    description,
+    description: SITE_DESCRIPTION,
   },
 };
 
