@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { AnyPs5Warning } from "@/components/anyps5-warning";
 import { EMULATORS } from "@/lib/emulators";
 import { STATUS_DETAIL, STATUS_LABEL } from "@/lib/status";
+import {
+  ANYPS5_OFFICIAL_REPO,
+  ANYPS5_OFFICIAL_SITE,
+  ANYPS5_ROADMAP_REPO,
+  ANYPS5_ROADMAP_SITE,
+} from "@/lib/sync/anyps5";
 import { STATUSES } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -17,7 +23,7 @@ export const metadata: Metadata = {
   },
 };
 
-const SOURCES = [
+const SOURCES: { name: string; href: string; detail: string }[] = [
   {
     name: "RPCS3",
     href: EMULATORS.rpcs3.siteUrl,
@@ -48,12 +54,6 @@ const SOURCES = [
     detail:
       "PS5 emulator. The community list is GitHub issues titled “[GAME STATUS]” in KytyPS5/KytyPS5. If that list cannot be read, the sync skips Kyty and keeps the previous snapshot for it.",
   },
-  {
-    name: "AnyPS5",
-    href: EMULATORS.anyps5.projectUrl,
-    detail:
-      "A PS5 to native porting layer, not an emulator. Game pages link only to github.com/boykopovar/AnyPS5 and boykopovar.github.io/AnyPS5. Title IDs in bring-up are taken from the community roadmap at github.com/AlxcBTW/anyps5-roadmap. “Playable” is reserved for officially confirmed titles. That is currently Dreaming Sarah, PPSA02929. Community stage claims stay “In bring-up”.",
-  },
 ];
 
 export default function AboutPage() {
@@ -82,6 +82,31 @@ export default function AboutPage() {
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{source.detail}</p>
             </li>
           ))}
+          <li className="rounded-xl border border-border bg-card p-4">
+            <p className="font-medium">AnyPS5</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              A PS5 to native porting layer, not an emulator. The official project is{" "}
+              <a className="text-foreground underline decoration-primary/60 underline-offset-4" href={ANYPS5_OFFICIAL_REPO}>
+                github.com/boykopovar/AnyPS5
+              </a>{" "}
+              and{" "}
+              <a className="text-foreground underline decoration-primary/60 underline-offset-4" href={ANYPS5_OFFICIAL_SITE}>
+                boykopovar.github.io/AnyPS5
+              </a>
+              . Bring-up stages and open blockers come from the community roadmap{" "}
+              <a className="text-foreground underline decoration-primary/60 underline-offset-4" href={ANYPS5_ROADMAP_SITE}>
+                alxcbtw.github.io/anyps5-roadmap
+              </a>
+              , source{" "}
+              <a className="text-foreground underline decoration-primary/60 underline-offset-4" href={ANYPS5_ROADMAP_REPO}>
+                github.com/AlxcBTW/anyps5-roadmap
+              </a>
+              . <span className="font-mono">data/games.json</span> only lists title IDs that must be joined or kept
+              apart; the built <span className="font-mono">site/roadmap.json</span> is the game list. “Playable” is
+              reserved for officially confirmed titles. That is currently Dreaming Sarah, PPSA02929. A roadmap stage
+              of Playable stays “In bring-up” here.
+            </p>
+          </li>
         </ul>
         <p className="text-sm leading-6 text-muted-foreground">
           PS4 and PS5 display names are matched with the MIT-licensed{" "}

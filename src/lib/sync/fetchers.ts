@@ -7,6 +7,7 @@ import {
   toDay,
 } from "@/lib/status";
 import { fetchJson, fetchText, githubJson, mapPool, sleep } from "@/lib/sync/http";
+import { mapAnyPs5, type AnyPs5BlockersFile, type AnyPs5GamesFile, type AnyPs5RoadmapFile } from "@/lib/sync/anyps5";
 
 export type TitleInfo = {
   name: string;
@@ -474,77 +475,30 @@ export async function fetchKyty(): Promise<SourceFetch> {
   }
 }
 
-const ANYPS5_PLAYABLE = new Set(["PPSA02929"]);
-const ANYPS5_SOURCE = "https://github.com/boykopovar/AnyPS5";
-
-type RoadmapGames = {
-  games?: { name?: string; title_ids?: string[]; titleIds?: string[] }[];
-};
-
-type RoadmapBlockers = {
-  verified?: string;
-  stage_reviews?: { title?: string; date?: string }[];
-  not_blockers?: { reason?: string }[];
-};
-
 export async function fetchAnyPs5(): Promise<SourceFetch> {
   try {
-    const [games, blockers] = await Promise.all([
-      fetchJson<RoadmapGames>(
-        "https://raw.githubusercontent.com/AlxcBTW/anyps5-roadmap/main/data/games.json",
-      ),
-      fetchJson<RoadmapBlockers>(
+    const gamesFile = await fetchJson<AnyPs5GamesFile>(
+      "https://raw.githubusercontent.com/AlxcBTW/anyps5-roadmap/main/data/games.json",
+    );
+    let roadmap: AnyPs5RoadmapFile | null = null;
+    let blockers: AnyPs5BlockersFile | null = null;
+    try {
+      roadmap = await fetchJson<AnyPs5RoadmapFile>(
+        "https://raw.githubusercontent.com/AlxcBTW/anyps5-roadmap/main/site/roadmap.json",
+      );
+    } catch {
+      blockers = await fetchJson<AnyPs5BlockersFile>(
         "https://raw.githubusercontent.com/AlxcBTW/anyps5-roadmap/main/data/blockers.json",
-      ),
-    ]);
-    const found = new Map<string, { name?: string; date?: string }>();
-    found.set("PPSA02929", { name: "Dreaming Sarah", date: blockers.verified });
-    let joined = 0;
-    for (const game of games.games ?? []) {
-      joined += 1;
-      const ids = game.title_ids ?? game.titleIds ?? [];
-      for (const id of ids) {
-        const titleId = id.toUpperCase();
-        if (!isTitleId(titleId)) continue;
-        found.set(titleId, { name: game.name, date: blockers.verified });
-      }
+      );
     }
-    for (const review of blockers.stage_reviews ?? []) {
-      const titleId = (review.title ?? "").toUpperCase();
-      if (!isTitleId(titleId)) continue;
-      const current = found.get(titleId) ?? {};
-      found.set(titleId, { ...current, date: review.date ?? current.date ?? blockers.verified });
-    }
-    for (const entry of blockers.not_blockers ?? []) {
-      const match = (entry.reason ?? "").toUpperCase().match(/\bPPSA\d{5}\b/g) ?? [];
-      for (const titleId of match) {
-        if (!found.has(titleId)) found.set(titleId, { date: blockers.verified });
-      }
-    }
-
-    const reports: RawReport[] = [];
-    for (const [titleId, info] of found) {
-      const official = ANYPS5_PLAYABLE.has(titleId);
-      reports.push({
-        emulator: "anyps5",
-        titleId,
-        name: official ? "Dreaming Sarah" : info.name,
-        platform: "ps5",
-        status: official ? "playable" : "in-bring-up",
-        updatedAt: toDay(info.date),
-        sourceUrl: ANYPS5_SOURCE,
-        note: official
-          ? "Officially confirmed. Currently the only AnyPS5 title marked Playable."
-          : "In bring-up. Community stage claims are not treated as Playable.",
-      });
-    }
+    const mapped = mapAnyPs5({ gamesFile, roadmap, blockers });
     return {
-      reports,
+      reports: dedupeReports(mapped.reports),
       meta: {
         id: "anyps5",
         ok: true,
-        count: reports.length,
-        note: `games.json joined groups: ${joined}. Playable only for officially confirmed PPSA02929 Dreaming Sarah. Other roadmap title IDs stay In bring-up. Links point at the official repository.`,
+        count: dedupeReports(mapped.reports).length,
+        note: mapped.note,
       },
     };
   } catch (error) {

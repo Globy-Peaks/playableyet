@@ -7,13 +7,13 @@ Projects in the snapshot:
 | Project | Kind | Reports in the seed |
 | --- | --- | --- |
 | RPCS3 | PS3 emulator | 6,781 |
-| shadPS4 | PS4 emulator | 1,438 title IDs from 2,298 labeled issues |
+| shadPS4 | PS4 emulator | 1,439 title IDs from 2,300 labeled issues |
 | fpPS4 | PS4 emulator | 2,008 |
-| SharpEmu | PS5 emulator | 97 |
-| KytyPS5 | PS5 emulator | 310 |
-| AnyPS5 | PS5 to native porting layer | 25 |
+| SharpEmu | PS5 emulator | 98 |
+| KytyPS5 | PS5 emulator | 312 |
+| AnyPS5 | PS5 to native porting layer | 251 title IDs from 241 roadmap games |
 
-The seed catalog has **5,932 games** and **10,659 reports**, generated `2026-10-15T21:48:24Z`. RPCS3 still has **126 serials without a title**. AnyPS5 `games.json` joined **0** groups, so bring-up IDs come from the roadmap blockers file. **Playable** on AnyPS5 is only Dreaming Sarah (`PPSA02929`). KytyPS5 issues in this snapshot top out at Ingame; none used a playable status.
+The seed catalog has **6,049 games** and **10,889 reports**, generated `2026-10-16T04:27:08Z`. RPCS3 still has **126 serials without a title**. AnyPS5 `data/games.json` has **0** join groups (`games[]` is empty; `distinct[]` keeps 1 homebrew pair apart). Stages and open blockers come from the built community roadmap: **169** title IDs have a stage and **85** have open blockers. **Playable** on AnyPS5 is only Dreaming Sarah (`PPSA02929`). Four roadmap rows say Playable; the other three stay In bring-up.
 
 The site does not link to ROMs, firmware, BIOS images, or decryption keys.
 
@@ -69,5 +69,5 @@ Watch signups are not part of the catalog. They live in gitignored `data/watchli
 
 - **126 RPCS3 serials** have a status and no title. The HTML compatibility page is blocked, and PlayStation-Titles has no PS3 file. Those rows stay under the serial as the name.
 - **shadPS4** issues without a `status-*` label are not fetched. GitHub’s issue list stops at 1,000 results, so each status label is requested on its own. Multiple issues for one title ID collapse to the furthest status.
-- **AnyPS5 `data/games.json`** currently has an empty `games` array. Bring-up IDs come from `data/blockers.json`. Community “playable” claims are not promoted.
-- **KytyPS5** uses GitHub issue search, which returns at most 1,000 issues. This run matched 464 and kept 310.
+- **AnyPS5 `data/games.json`** `games[]` is empty, so it joins nothing. That file is only for manual title-ID groups. The sync reads `site/roadmap.json` for the game list, the stage reached on main, and open blockers. One stage source points at a fork outside the allowlist, so that row links to the official repository instead.
+- **KytyPS5** uses GitHub issue search, which returns at most 1,000 issues. This run matched 468 and kept 312.

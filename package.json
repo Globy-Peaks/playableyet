@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "sync": "tsx scripts/sync.ts",
-    "test": "tsx --test src/lib/identity.test.ts src/lib/status.test.ts src/lib/sync/assemble.test.ts"
+    "test": "tsx --test src/lib/identity.test.ts src/lib/status.test.ts src/lib/sync/assemble.test.ts src/lib/sync/anyps5.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

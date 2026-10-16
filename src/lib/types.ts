@@ -23,6 +23,20 @@ export const STATUSES = [
 ] as const;
 export type Status = (typeof STATUSES)[number];
 
+export type OpenBlocker = {
+  id: string;
+  title: string;
+  url?: string;
+};
+
+/** Community roadmap progress. This is not the normalized playable status. */
+export type BringUp = {
+  /** Stage reached on main, or null when the roadmap has no qualifying stage. */
+  stage: string | null;
+  detail?: string;
+  blockers: OpenBlocker[];
+};
+
 export type Report = {
   emulator: EmulatorId;
   titleId: string;
@@ -32,6 +46,7 @@ export type Report = {
   sourceUrl: string;
   os?: string[];
   note?: string;
+  bringUp?: BringUp;
 };
 
 export type HistoryEvent = {

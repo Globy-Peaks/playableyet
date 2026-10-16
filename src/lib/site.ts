@@ -31,6 +31,7 @@ const HOSTS = new Set([
   "www.sharpemu.app",
   "kytyps5.github.io",
   "boykopovar.github.io",
+  "alxcbtw.github.io",
 ]);
 
 export function allowedHttpUrl(input: string, fallback: string): string {
@@ -43,6 +44,9 @@ export function allowedHttpUrl(input: string, fallback: string): string {
       if (!GITHUB_REPOS.includes(repo)) return fallback;
     }
     if (url.hostname === "boykopovar.github.io" && !url.pathname.startsWith("/AnyPS5")) {
+      return fallback;
+    }
+    if (url.hostname === "alxcbtw.github.io" && !url.pathname.startsWith("/anyps5-roadmap")) {
       return fallback;
     }
     return url.toString();

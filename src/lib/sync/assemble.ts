@@ -188,6 +188,7 @@ function toStoredReport(report: RawReport): Report {
     sourceUrl: report.sourceUrl,
     ...(report.os ? { os: report.os } : {}),
     ...(report.note ? { note: report.note } : {}),
+    ...(report.bringUp ? { bringUp: report.bringUp } : {}),
   };
 }
 

@@ -9,7 +9,14 @@ import { EMULATORS, PLATFORM_LABEL } from "@/lib/emulators";
 import { loadGame } from "@/lib/catalog";
 import { allowedHttpUrl } from "@/lib/site";
 import { STATUS_DETAIL, STATUS_LABEL, bestStatus } from "@/lib/status";
-import { EMULATOR_IDS, PLATFORMS, type Game, type Platform, type Status } from "@/lib/types";
+import {
+  ANYPS5_OFFICIAL_REPO,
+  ANYPS5_OFFICIAL_SITE,
+  ANYPS5_ROADMAP_REPO,
+  ANYPS5_ROADMAP_SITE,
+  anyps5RoadmapGameUrl,
+} from "@/lib/sync/anyps5";
+import { EMULATOR_IDS, PLATFORMS, type BringUp, type Game, type Platform, type Status } from "@/lib/types";
 import { readCatalogFile } from "@/lib/catalog-store";
 
 export async function generateStaticParams() {
@@ -152,6 +159,20 @@ async function GameArticle({ params }: { params: Promise<{ slug: string }> }) {
               <span> · {EMULATORS[id].kindLabel}</span>
             </li>
           ))}
+          {hasAny ? (
+            <li>
+              <a className="text-foreground underline decoration-primary/60 underline-offset-4" href={ANYPS5_ROADMAP_SITE}>
+                AnyPS5 community roadmap
+              </a>
+              <span>
+                {" "}
+                ·{" "}
+                <a className="text-foreground underline decoration-primary/60 underline-offset-4" href={ANYPS5_ROADMAP_REPO}>
+                  source
+                </a>
+              </span>
+            </li>
+          ) : null}
         </ul>
       </section>
     </main>
@@ -189,15 +210,81 @@ function PlatformColumn({ platform, game }: { platform: Platform; game: Game }) 
                   {report.os?.length ? ` · ${report.os.join(", ")}` : ""}
                 </p>
                 {report.note ? <p className="text-sm leading-6 text-muted-foreground">{report.note}</p> : null}
-                <a className="inline-block text-sm underline decoration-primary/60 underline-offset-4" href={href}>
-                  Source report
-                </a>
+                {report.bringUp ? <BringUpSummary bringUp={report.bringUp} /> : null}
+                {report.emulator === "anyps5" ? (
+                  <AnyPs5Links titleId={report.titleId} evidenceUrl={href} />
+                ) : (
+                  <a className="inline-block text-sm underline decoration-primary/60 underline-offset-4" href={href}>
+                    Source report
+                  </a>
+                )}
               </li>
             );
           })}
         </ul>
       )}
     </section>
+  );
+}
+
+function BringUpSummary({ bringUp }: { bringUp: BringUp }) {
+  return (
+    <div className="space-y-2 rounded-lg border border-border bg-background/60 p-3 text-sm">
+      <p>
+        <span className="text-muted-foreground">Stage reached </span>
+        <span className="font-medium text-foreground">{bringUp.stage ?? "Not recorded"}</span>
+      </p>
+      {bringUp.detail ? <p className="text-muted-foreground">{bringUp.detail}</p> : null}
+      <div>
+        <p className="text-muted-foreground">Open blockers</p>
+        {bringUp.blockers.length === 0 ? (
+          <p className="text-muted-foreground">None recorded.</p>
+        ) : (
+          <ul className="mt-1 list-disc space-y-1 pl-4 text-muted-foreground">
+            {bringUp.blockers.map((blocker) => (
+              <li key={blocker.id}>
+                {blocker.url ? (
+                  <a className="text-foreground underline decoration-primary/60 underline-offset-4" href={blocker.url}>
+                    {blocker.id}
+                  </a>
+                ) : (
+                  <span className="text-foreground">{blocker.id}</span>
+                )}
+                {blocker.title ? ` — ${blocker.title}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnyPs5Links({ titleId, evidenceUrl }: { titleId: string; evidenceUrl: string }) {
+  const links = [
+    ["Official project", ANYPS5_OFFICIAL_REPO],
+    ["Official site", ANYPS5_OFFICIAL_SITE],
+    ["Community roadmap", anyps5RoadmapGameUrl(titleId)],
+    ["Roadmap source", ANYPS5_ROADMAP_REPO],
+  ];
+  const evidence = evidenceUrl !== ANYPS5_OFFICIAL_REPO ? evidenceUrl : "";
+  return (
+    <ul className="space-y-1 text-sm">
+      {links.map(([label, href]) => (
+        <li key={label}>
+          <a className="underline decoration-primary/60 underline-offset-4" href={href}>
+            {label}
+          </a>
+        </li>
+      ))}
+      {evidence ? (
+        <li>
+          <a className="underline decoration-primary/60 underline-offset-4" href={evidence}>
+            Stage source
+          </a>
+        </li>
+      ) : null}
+    </ul>
   );
 }
 
