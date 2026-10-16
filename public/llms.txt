@@ -1,0 +1,17 @@
+# PlayableYet
+
+> Public index of PlayStation 3, 4, and 5 compatibility reports. It does not host games or link to ROMs, firmware, BIOS images, or decryption keys.
+
+PlayableYet copies public reports from RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5, and the AnyPS5 porting layer into one catalog. Status words stay the ones the source used.
+
+## Start here
+
+- [Home](https://playableyet.vercel.app/): Search and filter the catalog. Shows newly playable titles and status changes.
+- [About](https://playableyet.vercel.app/about): Sources, status definitions, and the AnyPS5 warning.
+- [Full guide](https://playableyet.vercel.app/llms-full.txt): Status meanings, data sources, and URL patterns.
+- [Sitemap](https://playableyet.vercel.app/sitemap.xml): Every game page.
+- [Search index](https://playableyet.vercel.app/search-index.json): Public catalog fields used by the browser. No email addresses or watch tokens.
+
+## Game pages
+
+- [Game](https://playableyet.vercel.app/games/{slug}): One title. `{slug}` is lowercase hyphenated words, for example `/games/dreaming-sarah`. The page includes schema.org VideoGame structured data with each project's status id (`playable`, `ingame`, `intro`, `menus`, `loadable`, `boots`, `in-bring-up`, `nothing`).

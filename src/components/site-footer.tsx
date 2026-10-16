@@ -15,7 +15,11 @@ export function SiteFooter() {
             <Link href="/about" className="text-foreground underline decoration-primary/60 underline-offset-4">
               About
             </Link>{" "}
-            for sources and the warning.
+            for sources and the warning. A short guide for AI tools is at{" "}
+            <Link href="/llms.txt" className="text-foreground underline decoration-primary/60 underline-offset-4">
+              llms.txt
+            </Link>
+            .
           </p>
         </div>
         <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
