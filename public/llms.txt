@@ -14,4 +14,4 @@ PlayableYet copies public reports from RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5,
 
 ## Game pages
 
-- [Game](https://playableyet.vercel.app/games/{slug}): One title. `{slug}` is lowercase hyphenated words, for example `/games/dreaming-sarah`. The page includes schema.org VideoGame structured data with each project's status id (`playable`, `ingame`, `intro`, `menus`, `loadable`, `boots`, `in-bring-up`, `nothing`).
+- [Game](https://playableyet.vercel.app/games/{slug}): One title. `{slug}` is lowercase hyphenated words, for example `/games/dreaming-sarah`. The page title asks “Is {Game} playable yet?” and the description lists platform and project statuses from that snapshot. The page includes schema.org VideoGame structured data with each project's status id (`playable`, `ingame`, `intro`, `menus`, `loadable`, `boots`, `in-bring-up`, `nothing`). The home page includes WebSite and, when the week has them, ItemList structured data for the newly playable rows shown on the page.

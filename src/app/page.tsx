@@ -5,6 +5,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { EMULATORS } from "@/lib/emulators";
 import { loadCatalog } from "@/lib/catalog";
 import { newlyPlayable, statusChanges, summarize } from "@/lib/feeds";
+import { serializeJsonLd } from "@/lib/game-jsonld";
+import { SITE_DESCRIPTION, siteUrl } from "@/lib/site";
+import { homeJsonLd } from "@/lib/site-jsonld";
 import { STATUS_LABEL } from "@/lib/status";
 
 export default async function HomePage() {
@@ -13,9 +16,12 @@ export default async function HomePage() {
   const fresh = newlyPlayable(catalog);
   const changes = statusChanges(catalog);
   const synced = summary.games > 0;
+  const shown = fresh.slice(0, 8);
+  const jsonLd = serializeJsonLd(homeJsonLd(siteUrl(), SITE_DESCRIPTION, shown));
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-8 sm:py-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       <section className="max-w-3xl space-y-4">
         <p className="font-mono text-xs tracking-[0.18em] text-primary uppercase">PS3 · PS4 · PS5</p>
         <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Is it playable yet?</h1>
@@ -50,7 +56,7 @@ export default async function HomePage() {
         <Feed
           title="Newly playable this week"
           empty="No playable report is dated in the last 7 days of this snapshot."
-          items={fresh.slice(0, 8)}
+          items={shown}
           extra={fresh.length > 8 ? fresh.length - 8 : 0}
           kind="new"
         />

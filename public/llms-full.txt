@@ -14,11 +14,11 @@ PlayableYet stores a snapshot of public compatibility reports and a short histor
 - `https://playableyet.vercel.app/games/{slug}` — one game. `{slug}` is lowercase words separated by hyphens. Example: `https://playableyet.vercel.app/games/dreaming-sarah`.
 - `https://playableyet.vercel.app/sitemap.xml` — every game URL.
 - `https://playableyet.vercel.app/search-index.json` — client search index. Fields are `slug`, `name`, `ids` (title IDs), `platforms` (`ps3`, `ps4`, `ps5`), `best` (furthest status id), `updatedAt` (`YYYY-MM-DD`), and `reports` of `{ emulator, status }`.
-- `https://playableyet.vercel.app/robots.txt` — crawlers are allowed.
+- `https://playableyet.vercel.app/robots.txt` — crawlers are allowed. Comment lines point at llms.txt and llms-full.txt.
 - `https://playableyet.vercel.app/llms.txt` — short guide for assistants.
 - `https://playableyet.vercel.app/llms-full.txt` — this file.
 
-Game pages embed schema.org `VideoGame` JSON-LD. `additionalProperty` entries use `propertyID` for the project id and `value` for the status id.
+Game pages use the title “Is {Game} playable yet?”. The meta description names each platform and project status present in the snapshot and skips projects with no report. Pages embed schema.org `VideoGame` JSON-LD. `additionalProperty` entries use `propertyID` for the project id and `value` for the status id. The home page embeds `WebSite` JSON-LD, plus an `ItemList` of the newly playable rows visible on that page.
 
 These paths are not catalog content:
 
