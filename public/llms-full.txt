@@ -11,14 +11,18 @@ PlayableYet stores a snapshot of public compatibility reports and a short histor
 
 - `https://playableyet.vercel.app/` — index, search, newly playable titles, and status changes.
 - `https://playableyet.vercel.app/about` — sources and what each status means.
-- `https://playableyet.vercel.app/games/{slug}` — one game. `{slug}` is lowercase words separated by hyphens. Example: `https://playableyet.vercel.app/games/dreaming-sarah`.
-- `https://playableyet.vercel.app/sitemap.xml` — every game URL.
-- `https://playableyet.vercel.app/search-index.json` — client search index. Fields are `slug`, `name`, `ids` (title IDs), `platforms` (`ps3`, `ps4`, `ps5`), `best` (furthest status id), `updatedAt` (`YYYY-MM-DD`), and `reports` of `{ emulator, status }`.
+- `https://playableyet.vercel.app/games/{slug}` — one game. `{slug}` is lowercase words separated by hyphens. Example: `https://playableyet.vercel.app/games/dreaming-sarah`. A slug that is not in the snapshot returns HTTP 404. The page links to related games, the platform page, and each project page.
+- `https://playableyet.vercel.app/ps3`, `/ps4`, and `/ps5` — platform pages. Each states how many games have a Playable report, counts games by furthest status, and lists the first 40 games with links to game pages.
+- `https://playableyet.vercel.app/emulators/{project}` — one project. `{project}` is `rpcs3`, `shadps4`, `fpps4`, `sharpemu`, `kytyps5`, or `anyps5`.
+- `https://playableyet.vercel.app/emulators/{project}/{status}` — games whose furthest report on that project is `{status}`. Example: `/emulators/shadps4/playable`.
+- `https://playableyet.vercel.app/sitemap.xml` — game URLs plus the platform and project pages.
+- `https://playableyet.vercel.app/search-index.json` — client search index, generated from the snapshot the site is serving. Fields are `slug`, `name`, `ids` (title IDs), `platforms` (`ps3`, `ps4`, `ps5`), `best` (furthest status id), `updatedAt` (`YYYY-MM-DD`), and `reports` of `{ emulator, status }`.
+- `https://playableyet.vercel.app/api/status` — public sync health. Fields are `generatedAt`, `lastSyncAttemptAt`, `lastSyncOk`, `gameCount`, and `sources` of `{ id, ok, count }`. No email addresses or tokens.
 - `https://playableyet.vercel.app/robots.txt` — crawlers are allowed. Comment lines point at llms.txt and llms-full.txt.
 - `https://playableyet.vercel.app/llms.txt` — short guide for assistants.
 - `https://playableyet.vercel.app/llms-full.txt` — this file.
 
-Game pages use the title “Is {Game} playable yet?”. The meta description names each platform and project status present in the snapshot and skips projects with no report. Pages embed schema.org `VideoGame` JSON-LD. `additionalProperty` entries use `propertyID` for the project id and `value` for the status id. The home page embeds `WebSite` JSON-LD, plus an `ItemList` of the newly playable rows visible on that page.
+Game pages use the title “Is {Game} playable yet?”. The meta description names each platform and project status present in the snapshot and skips projects with no report. Pages embed schema.org `VideoGame` JSON-LD and `BreadcrumbList` JSON-LD. `additionalProperty` entries use `propertyID` for the project id and `value` for the status id. The home page embeds `WebSite` JSON-LD, plus an `ItemList` of the newly playable rows visible on that page. Platform and project pages embed `ItemList` JSON-LD for the games shown there and `BreadcrumbList` JSON-LD.
 
 These paths are not catalog content:
 
@@ -26,6 +30,7 @@ These paths are not catalog content:
 - `GET /api/watch/confirm?token=` and `GET /api/watch/unsubscribe?token=` — one-time links for that subscriber.
 - `GET /watch/confirmed` and `GET /watch/unsubscribed` — result pages.
 - `GET` or `POST /api/cron/sync` — daily rebuild. Production requires `Authorization: Bearer` plus the cron secret. It is not a public API.
+- `GET /api/status` — public sync health described above.
 
 The public catalog and search index do not contain email addresses or watch tokens.
 

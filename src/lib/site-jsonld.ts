@@ -34,6 +34,34 @@ export function newlyPlayableItemListJsonLd(items: FeedItem[], origin: string) {
   };
 }
 
+export function breadcrumbJsonLd(items: { name: string; url: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+}
+
+export function linkItemListJsonLd(name: string, items: { name: string; url: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name,
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      url: item.url,
+    })),
+  };
+}
+
 export function homeJsonLd(url: string, description: string, newlyPlayable: FeedItem[]) {
   const graph: { "@type": string }[] = [websiteJsonLd(url, description)];
   if (newlyPlayable.length > 0) graph.push(newlyPlayableItemListJsonLd(newlyPlayable, url));

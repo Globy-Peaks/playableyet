@@ -10,9 +10,18 @@ export function SiteHeader() {
           </span>
           <span className="text-base font-semibold tracking-tight">PlayableYet</span>
         </Link>
-        <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+        <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm text-muted-foreground">
           <Link href="/" className="hover:text-foreground">
             Games
+          </Link>
+          <Link href="/ps3" className="hover:text-foreground">
+            PS3
+          </Link>
+          <Link href="/ps4" className="hover:text-foreground">
+            PS4
+          </Link>
+          <Link href="/ps5" className="hover:text-foreground">
+            PS5
           </Link>
           <Link href="/about" className="hover:text-foreground">
             About
