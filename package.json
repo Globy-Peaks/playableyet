@@ -8,10 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "sync": "tsx scripts/sync.ts",
-    "test": "tsx --test src/lib/identity.test.ts src/lib/status.test.ts src/lib/sync/assemble.test.ts src/lib/sync/anyps5.test.ts src/lib/watchlist-blob.test.ts src/lib/cron-auth.test.ts src/lib/game-jsonld.test.ts src/lib/game-seo.test.ts src/lib/site-jsonld.test.ts src/lib/search-filters.test.ts"
+    "test": "tsx --test src/lib/identity.test.ts src/lib/status.test.ts src/lib/sync/assemble.test.ts src/lib/sync/anyps5.test.ts src/lib/watchlist-blob.test.ts src/lib/cron-auth.test.ts src/lib/game-jsonld.test.ts src/lib/game-seo.test.ts src/lib/site-jsonld.test.ts src/lib/search-filters.test.ts src/lib/sync-status.test.ts src/lib/related.test.ts src/lib/hubs.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.8.2",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",

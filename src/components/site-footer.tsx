@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { EMULATORS } from "@/lib/emulators";
+import { EMULATORS, PLATFORM_LABEL } from "@/lib/emulators";
+import { emulatorPath, platformPath } from "@/lib/hubs";
+import { EMULATOR_IDS, PLATFORMS } from "@/lib/types";
 
 export function SiteFooter() {
   return (
@@ -22,15 +24,39 @@ export function SiteFooter() {
             .
           </p>
         </div>
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
-          {Object.values(EMULATORS).map((emulator) => (
-            <li key={emulator.id}>
-              <a href={emulator.siteUrl} className="hover:text-foreground">
-                {emulator.name}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+          <div>
+            <p className="mb-2 text-foreground">On this site</p>
+            <ul className="space-y-1">
+              {PLATFORMS.map((platform) => (
+                <li key={platform}>
+                  <Link href={platformPath(platform)} className="hover:text-foreground">
+                    {PLATFORM_LABEL[platform]}
+                  </Link>
+                </li>
+              ))}
+              {EMULATOR_IDS.map((emulator) => (
+                <li key={emulator}>
+                  <Link href={emulatorPath(emulator)} className="hover:text-foreground">
+                    {EMULATORS[emulator].name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="mb-2 text-foreground">Sources</p>
+            <ul className="space-y-1">
+              {Object.values(EMULATORS).map((emulator) => (
+                <li key={emulator.id}>
+                  <a href={emulator.siteUrl} className="hover:text-foreground">
+                    {emulator.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
     </footer>
   );

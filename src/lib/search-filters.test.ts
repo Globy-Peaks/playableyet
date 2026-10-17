@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
+import { readCatalogFile } from "./catalog-store";
 import { emulatorPlatform } from "./emulators";
 import { matchesSearchFilters } from "./search-filters";
+import { toSearchIndex } from "./sync/assemble";
 import { EMULATOR_IDS, PLATFORMS, STATUSES, type SearchEntry } from "./types";
 
 function entry(partial: Partial<SearchEntry> & Pick<SearchEntry, "reports" | "platforms">): SearchEntry {
@@ -69,7 +70,9 @@ test("a platform with no project or status still lists that console", () => {
 });
 
 test("the published index yields only Dreaming Sarah for AnyPS5 playable", () => {
-  const entries = JSON.parse(readFileSync("public/search-index.json", "utf8")) as SearchEntry[];
+  const catalog = readCatalogFile();
+  assert.ok(catalog);
+  const entries = toSearchIndex(catalog);
   const matched = entries.filter((item) =>
     matchesSearchFilters(item, { emulator: "anyps5", status: "playable" }),
   );

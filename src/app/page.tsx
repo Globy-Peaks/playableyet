@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { GameBrowser } from "@/components/game-browser";
+import { HubNav } from "@/components/hub-nav";
 import { StatusBadge } from "@/components/status-badge";
 import { EMULATORS } from "@/lib/emulators";
 import { loadCatalog } from "@/lib/catalog";
@@ -75,7 +76,8 @@ export default async function HomePage() {
           <p className="text-sm text-muted-foreground">Filter by platform, project, or status. Results stay on this page.</p>
         </div>
         <Suspense fallback={<p className="text-sm text-muted-foreground">Loading filters…</p>}>
-          <GameBrowser />
+          <HubNav />
+      <GameBrowser />
         </Suspense>
       </section>
     </main>

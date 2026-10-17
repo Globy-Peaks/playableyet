@@ -34,8 +34,10 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local watchlist signups
+# local watchlist signups and generated sync files
 /data/watchlist.json
+/data/sync-status.json
+/data/search-index.json
 
 # scratch downloads
 /agent-tools

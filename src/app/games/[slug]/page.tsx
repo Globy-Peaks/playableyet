@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { AnyPs5Warning } from "@/components/anyps5-warning";
 import { StatusBadge } from "@/components/status-badge";
 import { WatchForm } from "@/components/watch-form";
+import { loadCatalog, loadGame } from "@/lib/catalog";
 import { EMULATORS, PLATFORM_LABEL } from "@/lib/emulators";
 import { gameSeoDescription, gameSeoTitle } from "@/lib/game-seo";
 import { serializeJsonLd, videoGameJsonLd } from "@/lib/game-jsonld";
-import { loadGame } from "@/lib/catalog";
+import { emulatorPath, emulatorStatusPath, platformPath } from "@/lib/hubs";
+import { primaryPlatform, relatedGames } from "@/lib/related";
 import { allowedHttpUrl, siteUrl } from "@/lib/site";
+import { breadcrumbJsonLd } from "@/lib/site-jsonld";
 import { STATUS_DETAIL, bestStatus } from "@/lib/status";
 import {
   ANYPS5_OFFICIAL_REPO,
@@ -40,7 +42,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/games/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const game = await loadGame(slug);
-  if (!game) return { title: "Game not found" };
+  if (!game) notFound();
   const title = gameSeoTitle(game.name);
   const description = gameSeoDescription(game);
   return {
@@ -57,36 +59,55 @@ export async function generateMetadata({ params }: PageProps<"/games/[slug]">): 
   };
 }
 
-export default function GamePage({ params }: PageProps<"/games/[slug]">) {
-  return (
-    <Suspense fallback={<GameFallback />}>
-      <GameArticle params={params} />
-    </Suspense>
-  );
-}
-
-async function GameArticle({ params }: { params: Promise<{ slug: string }> }) {
+export default async function GamePage({ params }: PageProps<"/games/[slug]">) {
   const { slug } = await params;
   const game = await loadGame(slug);
   if (!game) notFound();
+  return <GameArticle game={game} />;
+}
+
+async function GameArticle({ game }: { game: Game }) {
 
   const playable = game.reports.some((report) => report.status === "playable");
   const hasAny = game.reports.some((report) => report.emulator === "anyps5");
   const history = [...game.history].reverse();
   const description = gameSeoDescription(game);
-  const jsonLd = serializeJsonLd(videoGameJsonLd(game, `${siteUrl()}/games/${slug}`, description));
+  const origin = siteUrl();
+  const pageUrl = `${origin}/games/${game.slug}`;
+  const platform = primaryPlatform(game);
+  const jsonLd = serializeJsonLd(videoGameJsonLd(game, pageUrl, description));
+  const breadcrumb = serializeJsonLd(
+    breadcrumbJsonLd([
+      { name: "Games", url: `${origin}/` },
+      { name: PLATFORM_LABEL[platform], url: `${origin}${platformPath(platform)}` },
+      { name: game.name, url: pageUrl },
+    ]),
+  );
+  const catalog = await loadCatalog();
+  const related = relatedGames(catalog.games, game);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:py-12">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumb }} />
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          <Link href="/" className="hover:text-foreground">
-            Games
-          </Link>
-          <span aria-hidden="true"> / </span>
-          <span>{game.name}</span>
-        </p>
+        <nav aria-label="Breadcrumb">
+          <ol className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <li>
+              <Link href="/" className="hover:text-foreground">
+                Games
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li>
+              <Link href={platformPath(platform)} className="hover:text-foreground">
+                {PLATFORM_LABEL[platform]}
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li className="text-foreground">{game.name}</li>
+          </ol>
+        </nav>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{game.name}</h1>
         <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
         <ul className="flex flex-wrap gap-2">
@@ -111,6 +132,23 @@ async function GameArticle({ params }: { params: Promise<{ slug: string }> }) {
       </section>
 
       <WatchForm slug={game.slug} gameName={game.name} alreadyPlayable={playable} />
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold tracking-tight">Related games</h2>
+        {related.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No other game in this snapshot shares a name stem or a close status on the same platform.</p>
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+            {related.map((item) => (
+              <li key={item.slug}>
+                <Link href={`/games/${item.slug}`} className="block px-4 py-3 font-medium hover:bg-accent/60">
+                  {item.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="rounded-xl border border-border bg-card">
         <header className="border-b border-border px-4 py-3">
@@ -191,7 +229,11 @@ function PlatformColumn({ platform, game }: { platform: Platform; game: Game }) 
   return (
     <section className="rounded-xl border border-border bg-card">
       <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <h2 className="font-medium">{PLATFORM_LABEL[platform]}</h2>
+        <h2 className="font-medium">
+          <Link href={platformPath(platform)} className="hover:underline">
+            {PLATFORM_LABEL[platform]}
+          </Link>
+        </h2>
         {overall ? <StatusBadge status={overall} /> : null}
       </header>
       {reports.length === 0 ? (
@@ -205,10 +247,16 @@ function PlatformColumn({ platform, game }: { platform: Platform; game: Game }) 
               <li key={`${report.emulator}-${report.titleId}`} className="space-y-2 px-4 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium">{emulator.name}</p>
+                    <p className="font-medium">
+                      <Link href={emulatorPath(report.emulator)} className="hover:underline">
+                        {emulator.name}
+                      </Link>
+                    </p>
                     <p className="text-xs text-muted-foreground">{emulator.kindLabel}</p>
                   </div>
-                  <StatusBadge status={report.status} />
+                  <Link href={emulatorStatusPath(report.emulator, report.status)}>
+                    <StatusBadge status={report.status} />
+                  </Link>
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">{STATUS_DETAIL[report.status]}</p>
                 <p className="font-mono text-xs text-muted-foreground">
@@ -291,13 +339,5 @@ function AnyPs5Links({ titleId, evidenceUrl }: { titleId: string; evidenceUrl: s
         </li>
       ) : null}
     </ul>
-  );
-}
-
-function GameFallback() {
-  return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-12">
-      <p className="text-sm text-muted-foreground">Loading this game…</p>
-    </main>
   );
 }

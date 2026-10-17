@@ -21,7 +21,7 @@ The site does not link to ROMs, firmware, BIOS images, or decryption keys.
 
 ```bash
 npm install
-npm run sync    # refresh data/catalog.json and public/search-index.json
+npm run sync    # refresh data/catalog.json; the site builds /search-index.json from that catalog
 npm run dev     # http://127.0.0.1:43123
 npm test
 npm run build
@@ -50,13 +50,13 @@ Copy `.env.example` to `.env.local`. Every variable is optional for local `next 
 
 The simplest store that works on Vercel is a JSON snapshot:
 
-- `data/catalog.json` is the catalog the site renders, including status history per game and project.
-- `public/search-index.json` is the client search index.
-- `data/sync-meta.json` records the last sync.
+- `data/catalog.json` is the catalog committed with the repo, including status history per game and project. On Vercel it is the fallback when Blob has no snapshot.
+- `/search-index.json` is generated from the catalog the pages are serving. It is not a static file from the last deploy.
+- `data/sync-meta.json` records the last local sync. `/api/status` is the public health JSON.
 
 The first snapshot is committed so the site works with no database. Later syncs append history when a status changes. The first observation of a report is marked initial and does not show up as a status change.
 
-On Vercel the filesystem is read-only, so cron cannot rewrite those files. Set `BLOB_READ_WRITE_TOKEN` and the job writes `playableyet/catalog.json` and `playableyet/search-index.json` with `access: "public"`. The site prefers the blob when the token is present and falls back to the committed files. Those two objects are the public snapshot. They do not contain email addresses or watch tokens.
+On Vercel the filesystem is read-only. The cron still publishes when a local write fails. Set `BLOB_READ_WRITE_TOKEN` and the job writes `playableyet/catalog.json`, `playableyet/search-index.json`, and `playableyet/sync-status.json` with `access: "public"`. Those objects are the public snapshot. They do not contain email addresses or watch tokens. Page reads bypass the Blob CDN cache and the catalog cache tag is expired after a publish, so a successful sync shows up on the next request. Without the token, production keeps serving the committed catalog and `/api/status` reports `lastSyncOk: false`.
 
 Watch signups are not part of the catalog. Locally they live in gitignored `data/watchlist.json`. On Vercel they are stored in Blob, but never at the guessable pathname `playableyet/watchlist.json`. The pathname is `playableyet/watch/<sha256>.json`. The hash covers a fixed prefix plus `WATCHLIST_BLOB_SECRET`, or the watchlist token when that secret is unset. The site does not return, link, or log that URL.
 
@@ -71,7 +71,8 @@ Each successful watchlist read or write deletes `playableyet/watchlist.json` if 
 1. Import the repository as a Next.js project.
 2. Add the environment variables you want. `BLOB_READ_WRITE_TOKEN` is what makes the daily job stick. Create a Blob store in the project and use its read-write token.
 3. `vercel.json` schedules `/api/cron/sync` at `15 6 * * *` (06:15 UTC). Set `CRON_SECRET` in the production environment. Vercel Cron sends `Authorization: Bearer $CRON_SECRET`. The route rejects the call when that header does not match, and it also rejects the call in production when `CRON_SECRET` is unset.
-4. The route allows up to 300 seconds (`maxDuration`). Hobby cron invocations are shorter than that, so a full unauthenticated sync can run out of time. Run `npm run sync` locally and commit the JSON, or use a plan and a `GITHUB_TOKEN` that can finish inside the limit.
+4. The route allows up to 300 seconds (`maxDuration`). Hobby cron invocations are shorter than that, so a full unauthenticated sync can run out of time. Run `npm run sync` locally and commit the JSON, or use a plan and a `GITHUB_TOKEN` that can finish inside the limit. Check `GET /api/status` for `generatedAt`, `lastSyncOk`, and per-source success. The cron log line starts with `PlayableYet sync summary`.
+5. Enable Web Analytics in the Vercel project dashboard. The site includes the Analytics component. The dashboard toggle is off until you turn it on. This does not enable a paid feature by itself.
 
 ## What could not be fully synced
 
