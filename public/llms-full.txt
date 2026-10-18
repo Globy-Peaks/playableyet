@@ -9,8 +9,10 @@ PlayableYet stores a snapshot of public compatibility reports and a short histor
 
 ## URL patterns
 
-- `https://playableyet.vercel.app/` — index, search, newly playable titles, and status changes.
-- `https://playableyet.vercel.app/about` — sources and what each status means.
+- `https://playableyet.vercel.app/` — index, search, newly playable titles, and status changes. `/?q=` server-renders matching games. Example: `https://playableyet.vercel.app/?q=tales+of+berseria`. Filtered URLs send `noindex`. `https://playableyet.vercel.app/search?q=` redirects to `/?q=`.
+- `https://playableyet.vercel.app/about` — sources and what each project's statuses mean.
+- `https://playableyet.vercel.app/changes` — games whose status changed between snapshots. The first time a report is seen is not a change.
+- `https://playableyet.vercel.app/feed.xml` — RSS 2.0 of those changes.
 - `https://playableyet.vercel.app/games/{slug}` — one game. `{slug}` is lowercase words separated by hyphens. Example: `https://playableyet.vercel.app/games/dreaming-sarah`. A slug that is not in the snapshot returns HTTP 404. The page links to related games, the platform page, and each project page.
 - `https://playableyet.vercel.app/ps3`, `/ps4`, and `/ps5` — platform pages. Each states how many games have a Playable report, counts games by furthest status, and lists the first 40 games with links to game pages.
 - `https://playableyet.vercel.app/emulators/{project}` — one project. `{project}` is `rpcs3`, `shadps4`, `fpps4`, `sharpemu`, `kytyps5`, or `anyps5`.
@@ -22,7 +24,7 @@ PlayableYet stores a snapshot of public compatibility reports and a short histor
 - `https://playableyet.vercel.app/llms.txt` — short guide for assistants.
 - `https://playableyet.vercel.app/llms-full.txt` — this file.
 
-Game pages use the title “Is {Game} playable yet?”. The meta description names each platform and project status present in the snapshot and skips projects with no report. Pages embed schema.org `VideoGame` JSON-LD and `BreadcrumbList` JSON-LD. `additionalProperty` entries use `propertyID` for the project id and `value` for the status id. The home page embeds `WebSite` JSON-LD, plus an `ItemList` of the newly playable rows visible on that page. Platform and project pages embed `ItemList` JSON-LD for the games shown there and `BreadcrumbList` JSON-LD.
+Game pages use the title “Is {Game} playable yet?”. The meta description names each platform and project status present in the snapshot, keeps the raw label, and adds that project’s documented meaning in parentheses when one exists. Projects with no report are skipped. Pages embed schema.org `VideoGame` JSON-LD, `FAQPage` JSON-LD, and `BreadcrumbList` JSON-LD. The FAQ answers “Is {Game} playable on PC?” and “Which emulator runs {Game} best?” using only the reports in the snapshot. Each game page also has an Open Graph image and a `twitter:card` of `summary_large_image` showing the title and the raw status label for each project that has a report. `additionalProperty` entries use `propertyID` for the project id and `value` for the status id. The home page embeds `WebSite` JSON-LD, plus an `ItemList` of the newly playable rows visible on that page. Platform and project pages embed `ItemList` JSON-LD for the games shown there and `BreadcrumbList` JSON-LD.
 
 These paths are not catalog content:
 
@@ -36,18 +38,63 @@ The public catalog and search index do not contain email addresses or watch toke
 
 ## Statuses
 
-Higher in this list is further along. `best` on a game is the furthest status among its reports.
+The site keeps each project's raw label. A short explanation is shown only when that project publishes a meaning for that label. Higher on the shared ladder is further along: `playable`, `ingame`, `intro`, `menus`, `loadable`, `boots`, `in-bring-up`, `nothing`. `best` on a game is the furthest status among its reports. A label one project does not publish is not filled in from another project.
 
-- `playable` — Playable. Can be played through, with minor or no issues.
-- `ingame` — Ingame. Reaches gameplay, with serious glitches or performance problems.
-- `intro` — Intro. Shows image or an intro and does not get through the menus. Used by RPCS3.
-- `menus` — Menus. Reaches interactive menus and does not reach gameplay. Used by PS4 and PS5 lists.
-- `loadable` — Loadable. Loads far enough to show a black screen or a framerate, then stops. Used by RPCS3.
-- `boots` — Boots. Shows a splash, logo, or other early output, then stops. Used by PS4 and PS5 lists.
-- `in-bring-up` — In bring-up. Tracked while AnyPS5 is bringing the title up. Not a playable rating.
-- `nothing` — Nothing. Crashes or shows nothing useful.
+### RPCS3
 
-Intro and Loadable stay distinct from Menus and Boots so a report is not relabeled into a status the source did not use.
+From the RPCS3 compatibility legend:
+
+- Playable: can be completed with playable performance and no game breaking glitches
+- Ingame: cannot be finished, has serious glitches, or has insufficient performance
+- Intro: displays an image but does not get past the menus
+- Loadable: displays a black screen with a framerate in the window title
+- Nothing: does not initialize, does not load, or crashes the emulator
+
+RPCS3 does not publish Menus or Boots.
+
+### shadPS4
+
+From the shadPS4 compatibility status labels:
+
+- Playable: can be played without any major issue
+- Ingame: reaches gameplay but has game-breaking issues
+- Menus: reaches the menu but freezes or crashes before going further
+- Boots: shows visual or audio output but freezes or crashes before the menu
+- Nothing: crashes when trying to launch or hangs on a black screen
+
+### fpPS4
+
+From the fpPS4 compatibility status labels:
+
+- Playable: boots and plays without crashes or GPU bugs, at a speed that is reasonable on an average PC
+- Ingame: goes in-game but crashes, deadlocks, has GPU or audio bugs, or is too slow
+- Menus: gets past the title screen but not into main gameplay
+- Boots: boots but does not get past the title screen
+- Nothing: does not boot and shows no signs of life
+
+### SharpEmu
+
+From the SharpEmu compatibility ratings:
+
+- Playable: completable with minor or no issues
+- Ingame: reaches gameplay with major issues
+- Menus: reaches interactive menus
+- Boots: shows splash or intro output and goes no further
+- Nothing: crashes or shows no output
+
+### KytyPS5
+
+From the KytyPS5 game-status guide. KytyPS5 does not publish a Playable definition.
+
+- Nothing: does not show its first logo or startup screen
+- Boots: shows a logo or startup screen but does not reach the main menu
+- Menus: reaches its menus but does not enter gameplay
+- Ingame: reaches controllable gameplay, even if bugs prevent completion
+
+### AnyPS5
+
+- Playable: officially confirmed by the AnyPS5 project, which says conversion does not guarantee that an app runs
+- In bring-up: a community roadmap stage, not an official Playable confirmation from the AnyPS5 project
 
 ## Data sources
 

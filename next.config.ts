@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/search-index.json", destination: "/api/search-index" }];
   },
+  async redirects() {
+    return [{ source: "/search", destination: "/", permanent: false }];
+  },
   outputFileTracingIncludes: {
     "/": ["./data/catalog.json"],
     "/games/[slug]": ["./data/catalog.json"],
@@ -23,6 +26,10 @@ const nextConfig: NextConfig = {
     "/ps5": ["./data/catalog.json"],
     "/emulators/[emulator]": ["./data/catalog.json"],
     "/emulators/[emulator]/[status]": ["./data/catalog.json"],
+    "/changes": ["./data/catalog.json"],
+    "/feed.xml": ["./data/catalog.json"],
+    "/games/[slug]/opengraph-image": ["./data/catalog.json"],
+    "/games/[slug]/twitter-image": ["./data/catalog.json"],
   },
   turbopack: {
     rules: {

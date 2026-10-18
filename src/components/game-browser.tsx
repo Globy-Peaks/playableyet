@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EMULATORS } from "@/lib/emulators";
+import { SEARCH_PAGE_SIZE } from "@/lib/home-search";
 import { matchesSearchFilters } from "@/lib/search-filters";
 import { STATUS_LABEL } from "@/lib/status";
 import { EMULATOR_IDS, PLATFORMS, STATUSES, type SearchEntry } from "@/lib/types";
@@ -11,7 +12,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const PAGE_SIZE = 40;
+const PAGE_SIZE = SEARCH_PAGE_SIZE;
 
 export function GameBrowser() {
   const params = useSearchParams();

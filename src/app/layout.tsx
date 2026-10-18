@@ -25,10 +25,11 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   alternates: {
     types: {
-      "text/plain": [
+        "text/plain": [
         { url: "/llms.txt", title: "llms.txt" },
         { url: "/llms-full.txt", title: "llms-full.txt" },
       ],
+      "application/rss+xml": [{ url: "/feed.xml", title: "PlayableYet status changes" }],
     },
   },
   openGraph: {
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable} dark h-full antialiased`}>
       <body className="flex min-h-full flex-col">
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
         <a
           href="#content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"

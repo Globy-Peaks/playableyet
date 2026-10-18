@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { AnyPs5Warning } from "@/components/anyps5-warning";
 import { EMULATORS } from "@/lib/emulators";
-import { STATUS_DETAIL, STATUS_LABEL } from "@/lib/status";
+import { documentedStatuses } from "@/lib/status-copy";
 import {
   ANYPS5_OFFICIAL_REPO,
   ANYPS5_OFFICIAL_SITE,
   ANYPS5_ROADMAP_REPO,
   ANYPS5_ROADMAP_SITE,
 } from "@/lib/sync/anyps5";
-import { STATUSES } from "@/lib/types";
+import { EMULATOR_IDS } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "About",
@@ -121,21 +121,36 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">What the statuses mean</h2>
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-          {STATUSES.map((status) => (
-            <li key={status} className="grid gap-1 px-4 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
-              <span className="font-medium">{STATUS_LABEL[status]}</span>
-              <span className="text-sm leading-6 text-muted-foreground">{STATUS_DETAIL[status]}</span>
-            </li>
-          ))}
-        </ul>
         <p className="text-sm leading-6 text-muted-foreground">
-          RPCS3 uses Intro and Loadable. PS4 and PS5 lists use Menus and Boots. Those stay distinct so a report is
-          not relabeled into a status the source did not use. “In bring-up” is only for AnyPS5 and is not a playable
-          rating.
+          Each row keeps the project’s raw label. The explanation is included only when that project publishes a
+          meaning for the label. A label one project does not use is left blank rather than copied from another list.
+          RPCS3 publishes Intro and Loadable. Several PS4 and PS5 lists publish Menus and Boots. KytyPS5 does not
+          publish a Playable definition. “In bring-up” is PlayableYet’s label for an AnyPS5 community roadmap stage,
+          not an official Playable confirmation.
         </p>
+        {EMULATOR_IDS.map((id) => {
+          const emulator = EMULATORS[id];
+          const rows = documentedStatuses(id);
+          return (
+            <section key={id} className="space-y-2">
+              <h3 className="font-medium">
+                <a className="underline decoration-primary/60 underline-offset-4" href={emulator.siteUrl}>
+                  {emulator.name}
+                </a>
+              </h3>
+              <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+                {rows.map((row) => (
+                  <li key={row.status} className="grid gap-1 px-4 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
+                    <span className="font-medium">{row.label}</span>
+                    <span className="text-sm leading-6 text-muted-foreground">{row.gloss}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
       </section>
 
       <section className="space-y-3 text-sm leading-6 text-muted-foreground">

@@ -6,13 +6,15 @@ import { StatusBadge } from "@/components/status-badge";
 import { WatchForm } from "@/components/watch-form";
 import { loadCatalog, loadGame } from "@/lib/catalog";
 import { EMULATORS, PLATFORM_LABEL } from "@/lib/emulators";
+import { faqPageJsonLd, gameFaq } from "@/lib/game-faq";
 import { gameSeoDescription, gameSeoTitle } from "@/lib/game-seo";
 import { serializeJsonLd, videoGameJsonLd } from "@/lib/game-jsonld";
 import { emulatorPath, emulatorStatusPath, platformPath } from "@/lib/hubs";
 import { primaryPlatform, relatedGames } from "@/lib/related";
 import { allowedHttpUrl, siteUrl } from "@/lib/site";
 import { breadcrumbJsonLd } from "@/lib/site-jsonld";
-import { STATUS_DETAIL, bestStatus } from "@/lib/status";
+import { bestStatus } from "@/lib/status";
+import { statusPhrase } from "@/lib/status-copy";
 import {
   ANYPS5_OFFICIAL_REPO,
   ANYPS5_OFFICIAL_SITE,
@@ -55,7 +57,7 @@ export async function generateMetadata({ params }: PageProps<"/games/[slug]">): 
       url: `/games/${slug}`,
       type: "article",
     },
-    twitter: { card: "summary", title, description },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 
@@ -85,10 +87,13 @@ async function GameArticle({ game }: { game: Game }) {
   );
   const catalog = await loadCatalog();
   const related = relatedGames(catalog.games, game);
+  const faq = gameFaq(game);
+  const faqJsonLd = serializeJsonLd(faqPageJsonLd(faq));
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:py-12">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqJsonLd }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumb }} />
       <div className="space-y-3">
         <nav aria-label="Breadcrumb">
@@ -122,6 +127,16 @@ async function GameArticle({ game }: { game: Game }) {
           ))}
         </ul>
       </div>
+
+      <section className="max-w-3xl space-y-4">
+        <h2 className="text-xl font-semibold tracking-tight">Questions from this snapshot</h2>
+        {faq.map((entry) => (
+          <article key={entry.question} className="space-y-1">
+            <h3 className="font-medium">{entry.question}</h3>
+            <p className="text-sm leading-6 text-muted-foreground">{entry.answer}</p>
+          </article>
+        ))}
+      </section>
 
       {hasAny ? <AnyPs5Warning /> : null}
 
@@ -258,7 +273,7 @@ function PlatformColumn({ platform, game }: { platform: Platform; game: Game }) 
                     <StatusBadge status={report.status} />
                   </Link>
                 </div>
-                <p className="text-sm leading-6 text-muted-foreground">{STATUS_DETAIL[report.status]}</p>
+                <p className="text-sm leading-6 text-muted-foreground">{statusPhrase(report.emulator, report.status)}</p>
                 <p className="font-mono text-xs text-muted-foreground">
                   {report.titleId} · updated {report.updatedAt}
                   {report.os?.length ? ` · ${report.os.join(", ")}` : ""}

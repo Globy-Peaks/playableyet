@@ -17,7 +17,11 @@ export function SiteFooter() {
             <Link href="/about" className="text-foreground underline decoration-primary/60 underline-offset-4">
               About
             </Link>{" "}
-            for sources and the warning. A short guide for AI tools is at{" "}
+            for sources and the warning. Recent{" "}
+            <Link href="/changes" className="text-foreground underline decoration-primary/60 underline-offset-4">
+              status changes
+            </Link>{" "}
+            are listed separately. A short guide for AI tools is at{" "}
             <Link href="/llms.txt" className="text-foreground underline decoration-primary/60 underline-offset-4">
               llms.txt
             </Link>
