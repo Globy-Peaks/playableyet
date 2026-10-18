@@ -1,5 +1,6 @@
 import { EMULATORS, PLATFORM_LABEL } from "@/lib/emulators";
-import { STATUS_LABEL, STATUS_RANK } from "@/lib/status";
+import { STATUS_RANK } from "@/lib/status";
+import { statusPhrase } from "@/lib/status-copy";
 import { EMULATOR_IDS, PLATFORMS, type Game, type Status } from "@/lib/types";
 
 export function gameSeoTitle(name: string): string {
@@ -17,7 +18,7 @@ export function gameSeoDescription(game: Game): string {
     const bits = EMULATOR_IDS.filter((id) => EMULATORS[id].platform === platform).flatMap((id) => {
       const statuses = uniqueStatuses(game.reports.filter((report) => report.emulator === id).map((report) => report.status));
       if (statuses.length === 0) return [];
-      return [`${EMULATORS[id].name} ${statuses.map((status) => STATUS_LABEL[status]).join(" and ")}`];
+      return [`${EMULATORS[id].name} ${statuses.map((status) => statusPhrase(id, status)).join(" and ")}`];
     });
     if (bits.length === 0) return [];
     return [`${PLATFORM_LABEL[platform]}: ${bits.join(", ")}`];

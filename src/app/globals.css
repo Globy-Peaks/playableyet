@@ -116,3 +116,7 @@
 .status-boots { background: var(--status-boots); color: oklch(0.2 0.04 30); }
 .status-in-bring-up { background: var(--status-bringup); color: oklch(0.18 0.04 290); }
 .status-nothing { background: var(--status-nothing); color: oklch(0.18 0.04 25); }
+
+.client-search { display: none; }
+html.js .client-search { display: block; }
+html.js .server-search { display: none; }

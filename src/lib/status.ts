@@ -23,6 +23,7 @@ export const STATUS_LABEL: Record<Status, string> = {
   nothing: "Nothing",
 };
 
+/** Generic ladder notes. Page copy uses the per-project gloss in status-copy.ts. */
 export const STATUS_DETAIL: Record<Status, string> = {
   playable: "Can be played through, with minor or no issues.",
   ingame: "Reaches gameplay, with serious glitches or performance problems.",

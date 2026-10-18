@@ -6,8 +6,10 @@ PlayableYet copies public reports from RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5,
 
 ## Start here
 
-- [Home](https://playableyet.vercel.app/): Search and filter the catalog. Shows newly playable titles and status changes.
-- [About](https://playableyet.vercel.app/about): Sources, status definitions, and the AnyPS5 warning.
+- [Home](https://playableyet.vercel.app/): Search and filter the catalog. Shows newly playable titles and status changes. `/?q=` server-renders games whose name or title ID matches, for example `/?q=tales+of+berseria`. Filtered URLs are `noindex`. `/search?q=` redirects to `/?q=`.
+- [About](https://playableyet.vercel.app/about): Sources, per-project status definitions, and the AnyPS5 warning.
+- [Status changes](https://playableyet.vercel.app/changes): Games whose status changed between snapshots. The first time a report is seen is not a change.
+- [Status change feed](https://playableyet.vercel.app/feed.xml): RSS 2.0 of those changes.
 - [Full guide](https://playableyet.vercel.app/llms-full.txt): Status meanings, data sources, and URL patterns.
 - [Sitemap](https://playableyet.vercel.app/sitemap.xml): Every game page, plus platform and project pages.
 - [Search index](https://playableyet.vercel.app/search-index.json): Public catalog fields used by the browser. Built from the snapshot the site is serving. No email addresses or watch tokens.
@@ -21,4 +23,4 @@ PlayableYet copies public reports from RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5,
 
 ## Game pages
 
-- [Game](https://playableyet.vercel.app/games/{slug}): One title. `{slug}` is lowercase hyphenated words, for example `/games/dreaming-sarah`. The page title asks “Is {Game} playable yet?” and the description lists platform and project statuses from that snapshot. The page includes schema.org VideoGame structured data with each project's status id (`playable`, `ingame`, `intro`, `menus`, `loadable`, `boots`, `in-bring-up`, `nothing`), plus BreadcrumbList structured data and links to related games, the platform page, and the project pages. Unknown slugs return HTTP 404. The home page includes WebSite and, when the week has them, ItemList structured data for the newly playable rows shown on the page. Platform and project pages include ItemList structured data for the games shown on that page.
+- [Game](https://playableyet.vercel.app/games/{slug}): One title. `{slug}` is lowercase hyphenated words, for example `/games/dreaming-sarah`. The page title asks “Is {Game} playable yet?” and the description lists platform and project statuses from that snapshot, keeping each raw label and adding that project’s documented meaning in parentheses when one exists. The page includes schema.org VideoGame structured data with each project's status id (`playable`, `ingame`, `intro`, `menus`, `loadable`, `boots`, `in-bring-up`, `nothing`), FAQPage structured data answering “Is {Game} playable on PC?” and “Which emulator runs {Game} best?” from the snapshot only, plus BreadcrumbList structured data and links to related games, the platform page, and the project pages. Unknown slugs return HTTP 404. The home page includes WebSite and, when the week has them, ItemList structured data for the newly playable rows shown on the page. Platform and project pages include ItemList structured data for the games shown on that page.

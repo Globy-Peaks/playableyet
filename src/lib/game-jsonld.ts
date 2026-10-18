@@ -1,5 +1,5 @@
 import { EMULATORS, PLATFORM_LABEL } from "@/lib/emulators";
-import { STATUS_DETAIL, STATUS_LABEL } from "@/lib/status";
+import { statusPhrase } from "@/lib/status-copy";
 import type { Game } from "@/lib/types";
 
 export function videoGameJsonLd(game: Game, pageUrl: string, description: string) {
@@ -21,7 +21,7 @@ export function videoGameJsonLd(game: Game, pageUrl: string, description: string
       name: `${EMULATORS[report.emulator].name} status (${report.titleId})`,
       propertyID: report.emulator,
       value: report.status,
-      description: `${STATUS_LABEL[report.status]}: ${STATUS_DETAIL[report.status]}`,
+      description: statusPhrase(report.emulator, report.status),
     })),
   };
 }

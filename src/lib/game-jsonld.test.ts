@@ -26,6 +26,7 @@ test("game pages describe a VideoGame and its status id", () => {
   assert.deepEqual(json.gamePlatform, ["PlayStation 5"]);
   assert.equal(json.additionalProperty[0]?.value, "playable");
   assert.equal(json.additionalProperty[0]?.propertyID, "anyps5");
+  assert.match(String(json.additionalProperty[0]?.description), /Playable \(officially confirmed/);
   const html = serializeJsonLd(json);
   assert.equal(html.includes("<"), false);
   assert.match(html, /\\u003c\/script>/);

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { gameSeoDescription, gameSeoTitle } from "./game-seo";
+import { statusPhrase } from "./status-copy";
 import type { Catalog, Game } from "./types";
 
 function game(partial: Partial<Game> & Pick<Game, "reports">): Game {
@@ -49,8 +50,9 @@ test("description lists only projects that have a report", () => {
   );
   assert.equal(
     description,
-    "Is Ape Escape playable yet? PlayStation 3: RPCS3 Playable. PlayStation 5: KytyPS5 Nothing, AnyPS5 In bring-up.",
+    `Is Ape Escape playable yet? PlayStation 3: RPCS3 ${statusPhrase("rpcs3", "playable")}. PlayStation 5: KytyPS5 ${statusPhrase("kytyps5", "nothing")}, AnyPS5 ${statusPhrase("anyps5", "in-bring-up")}.`,
   );
+  assert.match(description, /Nothing \(does not show its first logo or startup screen\)/);
   assert.equal(description.includes("shadPS4"), false);
   assert.equal(description.includes("fpPS4"), false);
   assert.equal(description.includes("SharpEmu"), false);
@@ -78,7 +80,10 @@ test("distinct statuses on one project are both named", () => {
       ],
     }),
   );
-  assert.equal(description, "Is Regional playable yet? PlayStation 3: RPCS3 Playable and Nothing.");
+  assert.equal(
+    description,
+    `Is Regional playable yet? PlayStation 3: RPCS3 ${statusPhrase("rpcs3", "playable")} and ${statusPhrase("rpcs3", "nothing")}.`,
+  );
 });
 
 test("a game with no reports does not gain a status", () => {
