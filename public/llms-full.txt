@@ -28,9 +28,13 @@ Game pages use the title “Is {Game} playable yet?”. The meta description nam
 
 These paths are not catalog content:
 
-- `POST /api/watch` — email signup. Do not send addresses here on behalf of a person.
+- `POST /api/watch` — per-game email signup. Do not send addresses here on behalf of a person.
 - `GET /api/watch/confirm?token=` and `GET /api/watch/unsubscribe?token=` — one-time links for that subscriber.
 - `GET /watch/confirmed` and `GET /watch/unsubscribed` — result pages.
+- `POST /api/newsletter` — weekly digest signup. Requires a real consent boolean. Do not submit it on behalf of a person.
+- `GET /api/newsletter/confirm?token=` — confirms a pending digest signup. Only then is the address stored as a Resend contact.
+- `GET /api/newsletter/unsubscribe?token=` and `POST /api/newsletter/unsubscribe?token=` — topic opt-out. POST with no body returns 200 for one-click unsubscribe.
+- `GET /newsletter/confirmed` and `GET /newsletter/unsubscribed` — result pages.
 - `GET` or `POST /api/cron/sync` — daily rebuild. Production requires `Authorization: Bearer` plus the cron secret. It is not a public API.
 - `GET /api/status` — public sync health described above.
 

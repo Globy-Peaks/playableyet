@@ -36,6 +36,7 @@ yarn-error.log*
 
 # local watchlist signups and generated sync files
 /data/watchlist.json
+/data/newsletter-pending.json
 /data/sync-status.json
 /data/search-index.json
 
