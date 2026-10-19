@@ -13,7 +13,8 @@ PlayableYet copies public reports from RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5,
 - [Full guide](https://playableyet.vercel.app/llms-full.txt): Status meanings, data sources, and URL patterns.
 - [Sitemap](https://playableyet.vercel.app/sitemap.xml): Every game page, plus platform and project pages.
 - [Search index](https://playableyet.vercel.app/search-index.json): Public catalog fields used by the browser. Built from the snapshot the site is serving. No email addresses or watch tokens.
-- [Sync status](https://playableyet.vercel.app/api/status): Public JSON with `generatedAt`, `lastSyncAttemptAt`, `lastSyncOk`, `gameCount`, and per-source `id`, `ok`, and `count`. No email addresses or tokens.
+- [Sync status](https://playableyet.vercel.app/api/status): Public JSON with `generatedAt`, `lastSyncAttemptAt`, `lastSyncOk`, `gameCount`, and per-source `id`, `ok`, `count`, `asOf`, and `carried`. When `ok` is false and `carried` is true, `count` is the number of reports kept from an earlier fetch, and those rows are older than `generatedAt`. `asOf` is the last successful fetch, or null when that time was not recorded. No email addresses or tokens.
+- Search ignores accents, so `/?q=yotei` matches “Yōtei”. `/rss` and `/rss.xml` permanently redirect to `/feed.xml`. The page head includes `<link rel="alternate" type="application/rss+xml" href="/feed.xml">`.
 
 ## Platform and project pages
 

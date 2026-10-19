@@ -72,9 +72,21 @@ export type Game = {
   history: HistoryEvent[];
 };
 
+/** Per-source result stored with a snapshot and on /api/status. */
+export type SourceFreshness = {
+  id: string;
+  ok: boolean;
+  count: number;
+  /** Last successful fetch. Null when that time was not recorded. */
+  asOf: string | null;
+  /** True when count is reports kept after a failed fetch. */
+  carried: boolean;
+};
+
 export type Catalog = {
   generatedAt: string;
   games: Game[];
+  sources?: SourceFreshness[];
 };
 
 export type SourceReport = {

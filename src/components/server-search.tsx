@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptySearch } from "@/components/empty-search";
 import { StatusBadge } from "@/components/status-badge";
 import { EMULATORS } from "@/lib/emulators";
 import { homeSearchHref, SEARCH_PAGE_SIZE, type HomeSearch } from "@/lib/home-search";
@@ -67,9 +68,7 @@ export function ServerSearch({
             {matches.length !== total ? ` of ${total.toLocaleString()}` : ""}
           </p>
           {slice.length === 0 ? (
-            <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-              Nothing matches that search. Clear a filter or try a title ID.
-            </p>
+            <EmptySearch query={search.q} />
           ) : (
             <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
               {slice.map((entry) => (

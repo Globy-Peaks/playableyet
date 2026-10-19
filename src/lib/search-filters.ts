@@ -13,11 +13,16 @@ export type SearchFilters = {
  * A playable RPCS3 report does not satisfy AnyPS5 + Playable, and it does not
  * satisfy PS5 + Playable when the PS5 projects are still behind.
  */
+/** Case- and accent-insensitive match text. "yotei" matches "Yōtei". */
+export function foldSearchText(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 export function matchesSearchFilters(entry: SearchEntry, filters: SearchFilters): boolean {
-  const needle = filters.query?.trim().toLowerCase() ?? "";
+  const needle = foldSearchText(filters.query?.trim() ?? "");
   if (needle) {
-    const name = entry.name.toLowerCase().includes(needle);
-    const id = entry.ids.some((value) => value.toLowerCase().includes(needle));
+    const name = foldSearchText(entry.name).includes(needle);
+    const id = entry.ids.some((value) => foldSearchText(value).includes(needle));
     if (!name && !id) return false;
   }
 

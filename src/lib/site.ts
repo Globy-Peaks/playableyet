@@ -1,6 +1,8 @@
 export const SITE_DESCRIPTION =
   "Playable status for PlayStation 3, 4, and 5 games across RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5, and the AnyPS5 porting layer.";
 
+export const SITE_TITLE = "PlayableYet: PS3, PS4 & PS5 emulator compatibility tracker";
+
 export function siteUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (explicit) return explicit.replace(/\/$/, "");

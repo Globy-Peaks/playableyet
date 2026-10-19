@@ -24,7 +24,7 @@ test("public sync status drops emails and tokens", () => {
     lastSyncAttemptAt: "2026-10-17T06:15:00.000Z",
     lastSyncOk: true,
     gameCount: 3,
-    sources: [{ id: "rpcs3", ok: true, count: 2 }],
+    sources: [{ id: "rpcs3", ok: true, count: 2, asOf: null, carried: false }],
   });
   assert.equal(JSON.stringify(parsed).includes("secret-token"), false);
   assert.equal(JSON.stringify(parsed).includes("person@example.com"), false);
