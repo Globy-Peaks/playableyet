@@ -37,6 +37,7 @@ These paths are not catalog content:
 - `GET /newsletter/confirmed` and `GET /newsletter/unsubscribed` — result pages.
 - `GET` or `POST /api/cron/sync` — daily rebuild. Production requires `Authorization: Bearer` plus the cron secret. It is not a public API.
 - `GET /api/status` — public sync health described above.
+- `GET /sponsor` — paid support packages. `/sponsor/thanks` is the post-payment page and is `noindex`. Do not invent traffic numbers. Questions go to hello@globypeaks.com.
 
 The public catalog and search index do not contain email addresses or watch tokens.
 

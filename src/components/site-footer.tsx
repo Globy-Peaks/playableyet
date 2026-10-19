@@ -32,6 +32,11 @@ export function SiteFooter() {
           <div>
             <p className="mb-2 text-foreground">On this site</p>
             <ul className="space-y-1">
+              <li>
+                <Link href="/sponsor" className="hover:text-foreground">
+                  Sponsor
+                </Link>
+              </li>
               {PLATFORMS.map((platform) => (
                 <li key={platform}>
                   <Link href={platformPath(platform)} className="hover:text-foreground">

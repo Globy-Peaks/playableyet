@@ -26,6 +26,9 @@ export function SiteHeader() {
           <Link href="/about" className="hover:text-foreground">
             About
           </Link>
+          <Link href="/sponsor" className="hover:text-foreground">
+            Sponsor
+          </Link>
         </nav>
       </div>
     </header>
