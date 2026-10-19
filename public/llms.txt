@@ -7,7 +7,8 @@ PlayableYet copies public reports from RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5,
 ## Start here
 
 - [Home](https://playableyet.vercel.app/): Search and filter the catalog. Shows newly playable titles and status changes. `/?q=` server-renders games whose name or title ID matches, for example `/?q=tales+of+berseria`. Filtered URLs are `noindex`. `/search?q=` redirects to `/?q=`.
-- [About](https://playableyet.vercel.app/about): Sources, per-project status definitions, and the AnyPS5 warning.
+- [About](https://playableyet.vercel.app/about): Sources, per-project status definitions, the AnyPS5 warning, and the email privacy note.
+- Weekly digest: the home page, `/changes`, and game pages include a double opt-in form for a weekly newly playable email across PS3, PS4, and PS5 emulators. Only a confirmed address becomes a Resend contact, with `source=playableyet` and the topic “PlayableYet weekly” (default opt-out). Those contacts are not added to the PatchVerdict Newsletter segment. Do not submit the form on behalf of a person.
 - [Status changes](https://playableyet.vercel.app/changes): Games whose status changed between snapshots. The first time a report is seen is not a change.
 - [Status change feed](https://playableyet.vercel.app/feed.xml): RSS 2.0 of those changes.
 - [Full guide](https://playableyet.vercel.app/llms-full.txt): Status meanings, data sources, and URL patterns.

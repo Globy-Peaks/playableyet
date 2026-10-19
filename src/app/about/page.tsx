@@ -201,6 +201,21 @@ export default async function AboutPage() {
           stored apart from the snapshot: private Blob access when the store accepts it, otherwise an unguessable
           pathname that the site never links to. The catalog snapshot stays public.
         </p>
+        <p>
+          The weekly digest is a separate list. The form on the home page, the changes page, and each game page asks
+          for an address and an unchecked consent box. PlayableYet stores that address as a Resend contact only after
+          you open the confirmation link. The contact gets the property <span className="font-mono">source=playableyet</span>{" "}
+          and the time you confirmed, and it is opted into the Resend topic “PlayableYet weekly”. That topic defaults
+          to opt-out, so other contacts on the same Resend account are not added. The address is not added to the
+          PatchVerdict Newsletter segment. Unsubscribe turns off the PlayableYet topic only. It does not globally
+          unsubscribe the address, so other mail to that address is unchanged.
+        </p>
+        <p>
+          A confirmation request is kept only until you confirm or for 48 hours, whichever comes first, and it is not a
+          subscriber. If sending mail or subscriber storage is not configured, the form says so and does not claim you
+          joined. Signup attempts are rate limited per server instance, and a hidden field rejects simple automated
+          posts.
+        </p>
       </section>
     </main>
   );

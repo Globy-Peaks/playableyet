@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AnyPs5Warning } from "@/components/anyps5-warning";
+import { NewsletterForm } from "@/components/newsletter-form";
 import { StatusBadge } from "@/components/status-badge";
 import { WatchForm } from "@/components/watch-form";
 import { loadCatalog, loadGame } from "@/lib/catalog";
@@ -234,6 +235,8 @@ async function GameArticle({ game }: { game: Game }) {
           ) : null}
         </ul>
       </section>
+
+      <NewsletterForm />
     </main>
   );
 }

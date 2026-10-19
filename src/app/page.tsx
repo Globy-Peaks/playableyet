@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { GameBrowser } from "@/components/game-browser";
 import { HubNav } from "@/components/hub-nav";
+import { NewsletterForm } from "@/components/newsletter-form";
 import { ServerSearch } from "@/components/server-search";
 import { StatusBadge } from "@/components/status-badge";
 import { loadCatalog, loadSyncStatus } from "@/lib/catalog";
@@ -111,6 +112,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           kind="change"
         />
       </section>
+
+      <NewsletterForm />
 
       <HubNav />
 

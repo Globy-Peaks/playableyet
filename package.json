@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "sync": "tsx scripts/sync.ts",
-    "test": "tsx --test src/lib/identity.test.ts src/lib/status.test.ts src/lib/sync/assemble.test.ts src/lib/sync/anyps5.test.ts src/lib/watchlist-blob.test.ts src/lib/cron-auth.test.ts src/lib/game-jsonld.test.ts src/lib/game-seo.test.ts src/lib/site-jsonld.test.ts src/lib/search-filters.test.ts src/lib/sync-status.test.ts src/lib/related.test.ts src/lib/hubs.test.ts src/lib/status-copy.test.ts src/lib/game-faq.test.ts src/lib/home-search.test.ts src/lib/changes-feed.test.ts src/lib/game-og.test.ts src/lib/source-freshness.test.ts src/lib/sitemap-dates.test.ts src/lib/sync/fpps4.test.ts"
+    "test": "tsx --test src/lib/identity.test.ts src/lib/status.test.ts src/lib/sync/assemble.test.ts src/lib/sync/anyps5.test.ts src/lib/watchlist-blob.test.ts src/lib/cron-auth.test.ts src/lib/game-jsonld.test.ts src/lib/game-seo.test.ts src/lib/site-jsonld.test.ts src/lib/search-filters.test.ts src/lib/sync-status.test.ts src/lib/related.test.ts src/lib/hubs.test.ts src/lib/status-copy.test.ts src/lib/game-faq.test.ts src/lib/home-search.test.ts src/lib/changes-feed.test.ts src/lib/game-og.test.ts src/lib/source-freshness.test.ts src/lib/sitemap-dates.test.ts src/lib/sync/fpps4.test.ts src/lib/newsletter.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
