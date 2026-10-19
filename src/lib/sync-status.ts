@@ -1,12 +1,8 @@
 import { readCatalogFile, readPublicBlobJson, tryWriteJson, writePublicBlob } from "@/lib/catalog-store";
 import { BLOB_CATALOG, BLOB_SYNC_STATUS, syncStatusPath } from "@/lib/paths";
-import type { SourceReport } from "@/lib/types";
+import type { SourceFreshness, SourceReport } from "@/lib/types";
 
-export type PublicSourceStatus = {
-  id: string;
-  ok: boolean;
-  count: number;
-};
+export type PublicSourceStatus = SourceFreshness;
 
 export type PublicSyncStatus = {
   generatedAt: string | null;
@@ -21,6 +17,8 @@ export function publicSources(sources: SourceReport[]): PublicSourceStatus[] {
     id: source.id,
     ok: source.ok,
     count: source.count,
+    asOf: null,
+    carried: false,
   }));
 }
 
@@ -34,7 +32,15 @@ export function parsePublicSyncStatus(value: unknown): PublicSyncStatus | null {
         if (typeof source.id !== "string" || typeof source.ok !== "boolean" || typeof source.count !== "number") {
           return [];
         }
-        return [{ id: source.id, ok: source.ok, count: source.count }];
+        return [
+          {
+            id: source.id,
+            ok: source.ok,
+            count: source.count,
+            asOf: typeof source.asOf === "string" ? source.asOf : null,
+            carried: source.carried === true,
+          },
+        ];
       })
     : [];
   return {

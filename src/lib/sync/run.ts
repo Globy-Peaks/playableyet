@@ -13,7 +13,8 @@ import {
   fetchSharpEmu,
   fetchTitleIndex,
 } from "@/lib/sync/fetchers";
-import { publicSources, savePublicSyncStatus, snapshotIsLive, syncSummaryLine } from "@/lib/sync-status";
+import { buildFreshness } from "@/lib/source-freshness";
+import { publicSources, readPublicSyncStatus, savePublicSyncStatus, snapshotIsLive, syncSummaryLine } from "@/lib/sync-status";
 
 function isEmulator(id: string): id is EmulatorId {
   return (EMULATOR_IDS as readonly string[]).includes(id);
@@ -22,12 +23,13 @@ function isEmulator(id: string): id is EmulatorId {
 export async function runSync(): Promise<SyncReport> {
   const started = new Date();
   const previous = (await readCatalogBlob()) ?? readCatalogFile();
+  const previousStatus = await readPublicSyncStatus();
   await savePublicSyncStatus({
     generatedAt: previous?.generatedAt ?? null,
     lastSyncAttemptAt: started.toISOString(),
     lastSyncOk: false,
     gameCount: previous?.games.length ?? null,
-    sources: [],
+    sources: previousStatus.sources,
   });
   console.log("PlayableYet sync started");
 
@@ -61,7 +63,14 @@ export async function runSync(): Promise<SyncReport> {
       ),
     );
     const generatedAt = started.toISOString();
-    const { catalog, changes } = assembleCatalog(reports, titles.titles, previous, generatedAt);
+    const { catalog: assembled, changes } = assembleCatalog(reports, titles.titles, previous, generatedAt);
+    const freshness = buildFreshness({
+      fetched: [...fetched.map((source) => source.meta), titles.meta],
+      previousCatalog: previous,
+      previousStatus,
+      generatedAt,
+    });
+    const catalog = { ...assembled, sources: freshness };
     const index = toSearchIndex(catalog);
     const sources = [...fetched.map((source) => source.meta), titles.meta];
     const local = writeCatalogFiles(catalog, index, {
@@ -108,7 +117,7 @@ export async function runSync(): Promise<SyncReport> {
       lastSyncAttemptAt: started.toISOString(),
       lastSyncOk: ok,
       gameCount: catalog.games.length,
-      sources: publicSources(sources),
+      sources: freshness,
     });
     console.log(
       syncSummaryLine({

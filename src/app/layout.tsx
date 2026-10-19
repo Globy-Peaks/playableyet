@@ -3,7 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { SITE_DESCRIPTION, siteUrl } from "@/lib/site";
+import { SITE_DESCRIPTION, SITE_TITLE, siteUrl } from "@/lib/site";
 import "./globals.css";
 
 const sans = Geist({
@@ -19,7 +19,7 @@ const mono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: {
-    default: "PlayableYet",
+    default: SITE_TITLE,
     template: "%s · PlayableYet",
   },
   description: SITE_DESCRIPTION,
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "PlayableYet",
+    title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     siteName: "PlayableYet",
     type: "website",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "PlayableYet",
+    title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
 };

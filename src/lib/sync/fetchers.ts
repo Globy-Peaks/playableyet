@@ -172,13 +172,19 @@ const SHAD_STATUS_LABELS = [
   "status-nothing",
 ] as const;
 
-async function githubLabeledIssues(repo: string, label: string): Promise<GhIssue[]> {
+async function githubLabeledIssues(
+  repo: string,
+  label: string,
+  direction: "asc" | "desc" = "desc",
+): Promise<GhIssue[]> {
   const issues: GhIssue[] = [];
   for (let page = 1; page <= 10; page += 1) {
     if (page > 1) await sleep(PAGE_GAP_MS);
     const url = new URL(`https://api.github.com/repos/${repo}/issues`);
     url.searchParams.set("state", "all");
     url.searchParams.set("labels", label);
+    url.searchParams.set("sort", "created");
+    url.searchParams.set("direction", direction);
     url.searchParams.set("per_page", "100");
     url.searchParams.set("page", String(page));
     let pageItems: GhIssue[] = [];
@@ -275,52 +281,211 @@ type FpRow = {
   labels?: string[];
 };
 
-export async function fetchFpPs4(): Promise<SourceFetch> {
+const FP_REPO = "red-prig/fpps4-game-compatibility";
+const FP_DATABASE = "https://api.fpps4.net/database.json";
+const FP_STATUS_LABELS = [
+  "status-playable",
+  "status-ingame",
+  "status-menus",
+  "status-boots",
+  "status-nothing",
+] as const;
+const GITHUB_ISSUE_WINDOW = 1000;
+
+/** True when the host answers an http request with https, or the reverse, for the same path. */
+export function fpps4SchemeLoop(fromUrl: string, location: string | null): boolean {
+  if (!location) return false;
   try {
-    const rows = await fetchJson<FpRow[]>("https://api.fpps4.net/database.json");
-    const reports: RawReport[] = [];
-    let skipped = 0;
-    for (const row of rows) {
-      const kind = row.issue_type ?? "Game";
-      if (/^system/i.test(kind)) {
-        skipped += 1;
-        continue;
-      }
-      const titleId = (row.code ?? "").toUpperCase();
-      const status = mapLooseStatus(row.status);
-      if (!isTitleId(titleId) || !status || !row.id) {
-        skipped += 1;
-        continue;
-      }
-      reports.push({
-        emulator: "fpps4",
-        titleId,
-        name: row.title,
-        platform: platformFor(titleId, "fpps4"),
-        status,
-        updatedAt: toDay(row.updated),
-        sourceUrl: `https://github.com/red-prig/fpps4-game-compatibility/issues/${row.id}`,
-        os: osFromLabels(row.labels ?? []),
-      });
+    const from = new URL(fromUrl);
+    const to = new URL(location, from);
+    if (from.hostname !== to.hostname || from.pathname !== to.pathname) return false;
+    return (
+      (from.protocol === "https:" && to.protocol === "http:") ||
+      (from.protocol === "http:" && to.protocol === "https:")
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function mergeLabeledIssues(
+  olderFirst: GhIssue[],
+  newerFirst: GhIssue[],
+): { issues: GhIssue[]; complete: boolean } {
+  const byUrl = new Map<string, GhIssue>();
+  for (const issue of [...olderFirst, ...newerFirst]) {
+    const key = issue.html_url;
+    if (!key || byUrl.has(key)) continue;
+    byUrl.set(key, issue);
+  }
+  const capped = olderFirst.length >= GITHUB_ISSUE_WINDOW && newerFirst.length >= GITHUB_ISSUE_WINDOW;
+  const olderUrls = new Set(olderFirst.map((issue) => issue.html_url).filter((url): url is string => Boolean(url)));
+  const overlap = newerFirst.some((issue) => issue.html_url && olderUrls.has(issue.html_url));
+  return { issues: [...byUrl.values()], complete: !capped || overlap };
+}
+
+export function reportFromFpIssue(issue: GhIssue): RawReport | null {
+  const labels = labelNames(issue);
+  if (skippedLabel(labels) || labels.some((label) => /^app-system/i.test(label))) return null;
+  const status = statusFromLabels(labels);
+  const body = issue.body ?? "";
+  const code = markdownField(body, "Game code");
+  const named = markdownField(body, "Game Name");
+  const titleId = (extractTitleId(code) || extractTitleId(issue.title ?? "") || extractTitleId(body) || "").toUpperCase();
+  if (!status || !isTitleId(titleId) || !issue.html_url) return null;
+  const usableName = named && !/^_?no response_?$/i.test(named) ? named : splitTitleAndId(issue.title ?? "").name;
+  return {
+    emulator: "fpps4",
+    titleId,
+    name: usableName,
+    platform: platformFor(titleId, "fpps4"),
+    status,
+    updatedAt: toDay(issue.updated_at),
+    sourceUrl: issue.html_url,
+    os: osFromLabels(labels),
+  };
+}
+
+function reportsFromFpRows(rows: FpRow[]): { reports: RawReport[]; note: string } {
+  const reports: RawReport[] = [];
+  let skipped = 0;
+  for (const row of rows) {
+    const kind = row.issue_type ?? "Game";
+    if (/^system/i.test(kind)) {
+      skipped += 1;
+      continue;
     }
-    const deduped = dedupeReports(reports);
+    const titleId = (row.code ?? "").toUpperCase();
+    const status = mapLooseStatus(row.status);
+    if (!isTitleId(titleId) || !status || !row.id) {
+      skipped += 1;
+      continue;
+    }
+    reports.push({
+      emulator: "fpps4",
+      titleId,
+      name: row.title,
+      platform: platformFor(titleId, "fpps4"),
+      status,
+      updatedAt: toDay(row.updated),
+      sourceUrl: `https://github.com/red-prig/fpps4-game-compatibility/issues/${row.id}`,
+      os: osFromLabels(row.labels ?? []),
+    });
+  }
+  const deduped = dedupeReports(reports);
+  return {
+    reports: deduped,
+    note: `${rows.length} database rows. Skipped ${skipped} system-firmware or unusable rows.`,
+  };
+}
+
+async function fetchFpDatabase(): Promise<FpRow[]> {
+  let url = FP_DATABASE;
+  for (let hop = 0; hop < 3; hop += 1) {
+    const response = await fetch(url, {
+      redirect: "manual",
+      headers: {
+        "User-Agent": "PlayableYet/0.1 (compatibility tracker; public status sync)",
+        Accept: "application/json, */*",
+      },
+    });
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location || fpps4SchemeLoop(url, location)) {
+        throw new Error(
+          "api.fpps4.net/database.json redirects between http and https and does not return the file",
+        );
+      }
+      url = new URL(location, url).toString();
+      continue;
+    }
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${url}`);
+    const text = await response.text();
+    const trimmed = text.trim();
+    if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) {
+      throw new Error("api.fpps4.net/database.json did not return JSON");
+    }
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!Array.isArray(parsed)) throw new Error("api.fpps4.net/database.json was not a list");
+    return parsed as FpRow[];
+  }
+  throw new Error("api.fpps4.net/database.json redirected too many times");
+}
+
+async function githubLabeledIssuesComplete(repo: string, label: string): Promise<GhIssue[]> {
+  const older = await githubLabeledIssues(repo, label, "asc");
+  if (older.length < GITHUB_ISSUE_WINDOW) return older;
+  const newer = await githubLabeledIssues(repo, label, "desc");
+  const merged = mergeLabeledIssues(older, newer);
+  if (!merged.complete) {
+    throw new Error(`${label} does not fit in two GitHub issue windows of ${GITHUB_ISSUE_WINDOW}`);
+  }
+  return merged.issues;
+}
+
+async function fetchFpGithub(): Promise<{ reports: RawReport[]; note: string }> {
+  const seen = new Set<string>();
+  const issues: GhIssue[] = [];
+  for (const label of FP_STATUS_LABELS) {
+    const labeled = await githubLabeledIssuesComplete(FP_REPO, label);
+    for (const issue of labeled) {
+      const key = issue.html_url;
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      issues.push(issue);
+    }
+  }
+  const reports: RawReport[] = [];
+  let skipped = 0;
+  for (const issue of issues) {
+    const report = reportFromFpIssue(issue);
+    if (!report) {
+      skipped += 1;
+      continue;
+    }
+    reports.push(report);
+  }
+  const deduped = dedupeReports(reports);
+  if (deduped.length === 0) throw new Error("GitHub issues produced no fpPS4 reports");
+  return {
+    reports: deduped,
+    note: `${issues.length} labeled GitHub issues collapsed to ${deduped.length} title IDs. ${skipped} skipped. System-firmware rows are skipped. status-nothing is read from both ends of the issue list because GitHub only returns 1,000 issues per query.`,
+  };
+}
+
+export async function fetchFpPs4(): Promise<SourceFetch> {
+  let databaseError = "database unread";
+  try {
+    const rows = await fetchFpDatabase();
+    const built = reportsFromFpRows(rows);
+    if (built.reports.length === 0) throw new Error("database.json contained no game rows");
     return {
-      reports: deduped,
+      reports: built.reports,
+      meta: { id: "fpps4", ok: true, count: built.reports.length, note: built.note },
+    };
+  } catch (error) {
+    databaseError = error instanceof Error ? error.message : String(error);
+  }
+  try {
+    const fromGithub = await fetchFpGithub();
+    return {
+      reports: fromGithub.reports,
       meta: {
         id: "fpps4",
         ok: true,
-        count: deduped.length,
-        note: `${rows.length} database rows. Skipped ${skipped} system-firmware or unusable rows.`,
+        count: fromGithub.reports.length,
+        note: `api.fpps4.net/database.json was not used (${databaseError}). ${fromGithub.note}`,
       },
     };
   } catch (error) {
+    const githubError = error instanceof Error ? error.message : String(error);
     return {
       reports: [],
       meta: {
         id: "fpps4",
         ok: false,
         count: 0,
-        error: error instanceof Error ? error.message : String(error),
+        error: `${databaseError}; ${githubError}`,
       },
     };
   }

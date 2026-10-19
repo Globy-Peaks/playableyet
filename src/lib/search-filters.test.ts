@@ -69,6 +69,21 @@ test("a platform with no project or status still lists that console", () => {
   assert.equal(matchesSearchFilters(sarah, { query: "missing", status: "playable" }), false);
 });
 
+test("yotei matches Ghost of Yōtei", () => {
+  const catalog = readCatalogFile();
+  assert.ok(catalog);
+  const entries = toSearchIndex(catalog);
+  const matched = entries.filter((item) => matchesSearchFilters(item, { query: "yotei" }));
+  assert.deepEqual(
+    matched.map((item) => item.slug),
+    ["ghost-of-y-tei"],
+  );
+  assert.equal(
+    matchesSearchFilters(matched[0], { query: "Yōtei" }),
+    true,
+  );
+});
+
 test("the published index yields only Dreaming Sarah for AnyPS5 playable", () => {
   const catalog = readCatalogFile();
   assert.ok(catalog);

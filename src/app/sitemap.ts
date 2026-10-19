@@ -1,10 +1,15 @@
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
 import { loadCatalog } from "@/lib/catalog";
 import { emulatorPath, emulatorStatusPath, platformPath } from "@/lib/hubs";
+import { gameLastModified } from "@/lib/sitemap-dates";
 import { siteUrl } from "@/lib/site";
 import { EMULATOR_IDS, PLATFORMS, STATUSES } from "@/lib/types";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Without a request-time read, this file is frozen at build and lastmod stays
+  // on the snapshot that existed when the deployment was built.
+  await connection();
   const catalog = await loadCatalog();
   const base = siteUrl();
   const updated = catalog.generatedAt;
@@ -37,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/llms-full.txt`, lastModified: updated, changeFrequency: "monthly", priority: 0.2 },
     ...catalog.games.map((game) => ({
       url: `${base}/games/${game.slug}`,
-      lastModified: updated,
+      lastModified: gameLastModified(game.history, updated),
       changeFrequency: "weekly" as const,
       priority: 0.7,
     })),
