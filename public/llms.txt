@@ -8,6 +8,7 @@ PlayableYet copies public reports from RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5,
 
 - [Home](https://playableyet.vercel.app/): Search and filter the catalog. Shows newly playable titles and status changes. `/?q=` server-renders games whose name or title ID matches, for example `/?q=tales+of+berseria`. Filtered URLs are `noindex`. `/search?q=` redirects to `/?q=`.
 - [About](https://playableyet.vercel.app/about): Sources, per-project status definitions, and the AnyPS5 warning.
+- [Sponsor](https://playableyet.vercel.app/sponsor): Paid support. Supporter is a name on the list. Site banner is one reviewed placement, labeled Sponsored, on the home page and game pages. The newsletter placement is hidden unless `showNewsletterSponsor` is turned on. `/sponsor/thanks` is the page Stripe returns to after payment and is `noindex`. Questions: hello@globypeaks.com. No traffic numbers are published.
 - [Status changes](https://playableyet.vercel.app/changes): Games whose status changed between snapshots. The first time a report is seen is not a change.
 - [Status change feed](https://playableyet.vercel.app/feed.xml): RSS 2.0 of those changes.
 - [Full guide](https://playableyet.vercel.app/llms-full.txt): Status meanings, data sources, and URL patterns.

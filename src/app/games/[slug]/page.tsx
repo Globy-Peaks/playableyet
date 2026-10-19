@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AnyPs5Warning } from "@/components/anyps5-warning";
+import { SponsoredBanner } from "@/components/sponsored-banner";
 import { StatusBadge } from "@/components/status-badge";
 import { WatchForm } from "@/components/watch-form";
 import { loadCatalog, loadGame } from "@/lib/catalog";
@@ -127,6 +128,8 @@ async function GameArticle({ game }: { game: Game }) {
           ))}
         </ul>
       </div>
+
+      <SponsoredBanner />
 
       <section className="max-w-3xl space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">Questions from this snapshot</h2>

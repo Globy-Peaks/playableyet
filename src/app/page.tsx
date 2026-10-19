@@ -4,6 +4,7 @@ import Link from "next/link";
 import { GameBrowser } from "@/components/game-browser";
 import { HubNav } from "@/components/hub-nav";
 import { ServerSearch } from "@/components/server-search";
+import { SponsoredBanner } from "@/components/sponsored-banner";
 import { StatusBadge } from "@/components/status-badge";
 import { loadCatalog } from "@/lib/catalog";
 import { EMULATORS } from "@/lib/emulators";
@@ -66,6 +67,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           </p>
         ) : null}
       </section>
+
+      <SponsoredBanner />
 
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {summary.emulators.map((stat) => (
