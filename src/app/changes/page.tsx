@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { NewsletterForm } from "@/components/newsletter-form";
 import { StatusBadge } from "@/components/status-badge";
 import { loadCatalog } from "@/lib/catalog";
 import { CHANGES_PAGE_SIZE } from "@/lib/changes-feed";
@@ -49,6 +50,8 @@ export default async function ChangesPage() {
           </p>
         ) : null}
       </div>
+
+      <NewsletterForm />
 
       {shown.length === 0 ? (
         <p className="rounded-xl border border-dashed p-6 text-sm leading-6 text-muted-foreground">

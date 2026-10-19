@@ -8,6 +8,7 @@ import { SEARCH_PAGE_SIZE } from "@/lib/home-search";
 import { matchesSearchFilters } from "@/lib/search-filters";
 import { STATUS_LABEL } from "@/lib/status";
 import { EMULATOR_IDS, PLATFORMS, STATUSES, type SearchEntry } from "@/lib/types";
+import { EmptySearch } from "@/components/empty-search";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,9 +143,7 @@ export function GameBrowser() {
             {filtered.length !== entries.length ? ` of ${entries.length.toLocaleString()}` : ""}
           </p>
           {slice.length === 0 ? (
-            <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-              Nothing matches that search. Clear a filter or try a title ID.
-            </p>
+            <EmptySearch query={query} />
           ) : (
             <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
               {slice.map((entry) => (

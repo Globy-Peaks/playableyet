@@ -11,7 +11,11 @@ const nextConfig: NextConfig = {
     return [{ source: "/search-index.json", destination: "/api/search-index" }];
   },
   async redirects() {
-    return [{ source: "/search", destination: "/", permanent: false }];
+    return [
+      { source: "/search", destination: "/", permanent: false },
+      { source: "/rss", destination: "/feed.xml", permanent: true },
+      { source: "/rss.xml", destination: "/feed.xml", permanent: true },
+    ];
   },
   outputFileTracingIncludes: {
     "/": ["./data/catalog.json"],

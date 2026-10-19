@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { AnyPs5Warning } from "@/components/anyps5-warning";
+import { loadCatalog, loadSyncStatus } from "@/lib/catalog";
 import { EMULATORS } from "@/lib/emulators";
+import { explainSources, staleSourceMessages } from "@/lib/source-freshness";
 import { documentedStatuses } from "@/lib/status-copy";
 import {
   ANYPS5_OFFICIAL_REPO,
@@ -40,7 +42,7 @@ const SOURCES: { name: string; href: string; detail: string }[] = [
     name: "fpPS4",
     href: EMULATORS.fpps4.siteUrl,
     detail:
-      "PS4 emulator. The public list at fpps4.net is aggregated from GitHub issues in red-prig/fpps4-game-compatibility. The sync reads api.fpps4.net/database.json and skips system-firmware rows.",
+      "PS4 emulator. The public list at fpps4.net is aggregated from GitHub issues in red-prig/fpps4-game-compatibility. That site loads api.fpps4.net/database.json, which currently redirects between http and https and does not return the file. The sync reads those GitHub issues instead, using the status-playable, status-ingame, status-menus, status-boots, and status-nothing labels, and skips system-firmware rows.",
   },
   {
     name: "SharpEmu",
@@ -56,7 +58,11 @@ const SOURCES: { name: string; href: string; detail: string }[] = [
   },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const catalog = await loadCatalog();
+  const status = await loadSyncStatus();
+  const explained = explainSources(status, catalog);
+  const notes = staleSourceMessages(explained, catalog.generatedAt);
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 sm:py-12">
       <header className="space-y-3">
@@ -121,6 +127,31 @@ export default function AboutPage() {
         </p>
       </section>
 
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold tracking-tight">When a source fails</h2>
+        <p className="text-sm leading-6 text-muted-foreground">
+          A failed fetch does not delete that project’s rows. The snapshot keeps the last reports, and those rows are
+          older than the snapshot date. <span className="font-mono">/api/status</span> sets <span className="font-mono">ok</span>{" "}
+          to false. <span className="font-mono">count</span> is the number of reports kept, not a fresh fetch of zero.{" "}
+          <span className="font-mono">asOf</span> is the last successful fetch when that time was recorded, and{" "}
+          <span className="font-mono">carried</span> is true when the rows are from an earlier fetch.
+        </p>
+        {notes.length > 0 ? (
+          <ul className="space-y-2 text-sm leading-6 text-muted-foreground">
+            {notes.map((note) => (
+              <li key={note.id}>{note.message}</li>
+            ))}
+          </ul>
+        ) : explained.length > 0 ? (
+          <p className="text-sm leading-6 text-muted-foreground">Every tracked source was read for this snapshot.</p>
+        ) : (
+          <p className="text-sm leading-6 text-muted-foreground">
+            This copy has no per-source fetch record yet. After the next sync, a source that could not be read is listed
+            here.
+          </p>
+        )}
+      </section>
+
       <section className="space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">What the statuses mean</h2>
         <p className="text-sm leading-6 text-muted-foreground">
@@ -169,6 +200,21 @@ export default function AboutPage() {
           Addresses and confirmation tokens are not in the public catalog or the search index. On Vercel they are
           stored apart from the snapshot: private Blob access when the store accepts it, otherwise an unguessable
           pathname that the site never links to. The catalog snapshot stays public.
+        </p>
+        <p>
+          The weekly digest is a separate list. The form on the home page, the changes page, and each game page asks
+          for an address and an unchecked consent box. PlayableYet stores that address as a Resend contact only after
+          you open the confirmation link. The contact gets the property <span className="font-mono">source=playableyet</span>{" "}
+          and the time you confirmed, and it is opted into the Resend topic “PlayableYet weekly”. That topic defaults
+          to opt-out, so other contacts on the same Resend account are not added. The address is not added to the
+          PatchVerdict Newsletter segment. Unsubscribe turns off the PlayableYet topic only. It does not globally
+          unsubscribe the address, so other mail to that address is unchanged.
+        </p>
+        <p>
+          A confirmation request is kept only until you confirm or for 48 hours, whichever comes first, and it is not a
+          subscriber. If sending mail or subscriber storage is not configured, the form says so and does not claim you
+          joined. Signup attempts are rate limited per server instance, and a hidden field rejects simple automated
+          posts.
         </p>
       </section>
     </main>

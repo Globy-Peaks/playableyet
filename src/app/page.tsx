@@ -3,14 +3,16 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { GameBrowser } from "@/components/game-browser";
 import { HubNav } from "@/components/hub-nav";
+import { NewsletterForm } from "@/components/newsletter-form";
 import { ServerSearch } from "@/components/server-search";
 import { SponsoredBanner } from "@/components/sponsored-banner";
 import { StatusBadge } from "@/components/status-badge";
-import { loadCatalog } from "@/lib/catalog";
+import { loadCatalog, loadSyncStatus } from "@/lib/catalog";
 import { EMULATORS } from "@/lib/emulators";
 import { newlyPlayable, statusChanges, summarize } from "@/lib/feeds";
 import { serializeJsonLd } from "@/lib/game-jsonld";
 import { filterSearchEntries, homeSearchHref, readHomeSearch, searchResultTitle } from "@/lib/home-search";
+import { explainSources, staleSourceMessages } from "@/lib/source-freshness";
 import { SITE_DESCRIPTION, siteUrl } from "@/lib/site";
 import { homeJsonLd } from "@/lib/site-jsonld";
 import { STATUS_LABEL } from "@/lib/status";
@@ -48,6 +50,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const entries = toSearchIndex(catalog);
   const matches = filterSearchEntries(entries, search);
   const title = searchResultTitle(search);
+  const sourceNotes = staleSourceMessages(explainSources(await loadSyncStatus(), catalog), catalog.generatedAt);
+  const staleSources = new Set(sourceNotes.map((note) => note.id));
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-8 sm:py-12">
@@ -66,6 +70,13 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             {summary.generatedAt.slice(0, 16).replace("T", " ")} UTC.
           </p>
         ) : null}
+        {sourceNotes.length > 0 ? (
+          <ul className="max-w-2xl space-y-2 text-sm leading-6 text-muted-foreground">
+            {sourceNotes.map((note) => (
+              <li key={note.id}>{note.message}</li>
+            ))}
+          </ul>
+        ) : null}
       </section>
 
       <SponsoredBanner />
@@ -80,6 +91,9 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
               <span className="text-muted-foreground"> playable</span>
             </p>
             <p className="text-xs text-muted-foreground">{stat.reports.toLocaleString()} reports</p>
+            {staleSources.has(stat.emulator) ? (
+              <p className="mt-1 text-xs text-muted-foreground">Older than this snapshot</p>
+            ) : null}
           </div>
         ))}
       </section>
@@ -101,6 +115,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           kind="change"
         />
       </section>
+
+      <NewsletterForm />
 
       <HubNav />
 
