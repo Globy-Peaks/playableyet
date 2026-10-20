@@ -66,6 +66,8 @@ export type TitleRef = {
 
 export type Game = {
   slug: string;
+  /** Older slugs that permanently redirect to `slug`. */
+  aliases?: string[];
   name: string;
   titles: TitleRef[];
   reports: Report[];

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { AnyPs5Warning } from "@/components/anyps5-warning";
 import { NewsletterForm } from "@/components/newsletter-form";
 import { SponsoredBanner } from "@/components/sponsored-banner";
@@ -26,10 +26,18 @@ import {
 } from "@/lib/sync/anyps5";
 import { EMULATOR_IDS, PLATFORMS, type BringUp, type Game, type Platform } from "@/lib/types";
 import { readCatalogFile } from "@/lib/catalog-store";
+import { withCanonicalSlugs } from "@/lib/slugs";
+
+async function resolveGame(slug: string): Promise<Game> {
+  const game = await loadGame(slug);
+  if (!game) notFound();
+  if (game.slug !== slug) permanentRedirect(`/games/${game.slug}`);
+  return game;
+}
 
 export async function generateStaticParams() {
   const catalog = readCatalogFile();
-  const games = catalog?.games ?? [];
+  const games = catalog ? withCanonicalSlugs(catalog).games : [];
   const preferred = games.filter((game) =>
     game.reports.some((report) => report.titleId === "PPSA02929"),
   );
@@ -45,18 +53,18 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/games/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const game = await loadGame(slug);
-  if (!game) notFound();
+  const game = await resolveGame(slug);
   const title = gameSeoTitle(game.name);
   const description = gameSeoDescription(game);
+  const canonical = `/games/${game.slug}`;
   return {
     title,
     description,
-    alternates: { canonical: `/games/${slug}` },
+    alternates: { canonical },
     openGraph: {
       title,
       description,
-      url: `/games/${slug}`,
+      url: canonical,
       type: "article",
     },
     twitter: { card: "summary_large_image", title, description },
@@ -65,8 +73,7 @@ export async function generateMetadata({ params }: PageProps<"/games/[slug]">): 
 
 export default async function GamePage({ params }: PageProps<"/games/[slug]">) {
   const { slug } = await params;
-  const game = await loadGame(slug);
-  if (!game) notFound();
+  const game = await resolveGame(slug);
   return <GameArticle game={game} />;
 }
 

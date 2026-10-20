@@ -42,7 +42,7 @@ const SOURCES: { name: string; href: string; detail: string }[] = [
     name: "fpPS4",
     href: EMULATORS.fpps4.siteUrl,
     detail:
-      "PS4 emulator. The public list at fpps4.net is aggregated from GitHub issues in red-prig/fpps4-game-compatibility. That site loads api.fpps4.net/database.json, which currently redirects between http and https and does not return the file. The sync reads those GitHub issues instead, using the status-playable, status-ingame, status-menus, status-boots, and status-nothing labels, and skips system-firmware rows.",
+      "PS4 emulator. The public list at fpps4.net is aggregated from GitHub issues in red-prig/fpps4-game-compatibility. That site loads api.fpps4.net/database.json, which redirects between http and https and does not return the file. The sync reads those GitHub issues instead, following the Link cursor so lists past 1,000 issues stay complete, and skips system-firmware rows.",
   },
   {
     name: "SharpEmu",
