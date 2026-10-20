@@ -38,7 +38,9 @@ function githubHeaders(): HeadersInit {
   return headers;
 }
 
-export async function githubJson<T>(url: string, attempt = 0): Promise<T> {
+export type GithubPage<T> = { data: T; link: string | null };
+
+async function githubRequest<T>(url: string, attempt = 0): Promise<GithubPage<T>> {
   const response = await fetch(url, { headers: githubHeaders() });
   if ((response.status === 403 || response.status === 429) && attempt < 5) {
     const remaining = response.headers.get("x-ratelimit-remaining");
@@ -49,16 +51,45 @@ export async function githubJson<T>(url: string, attempt = 0): Promise<T> {
         throw new Error(`GitHub rate limit resets in ${Math.round(waitMs / 1000)}s for ${url}`);
       }
       await sleep(waitMs);
-      return githubJson<T>(url, attempt + 1);
+      return githubRequest<T>(url, attempt + 1);
     }
     const retry = Number(response.headers.get("retry-after")) || 2 + attempt;
     await sleep(retry * 1000);
-    return githubJson<T>(url, attempt + 1);
+    return githubRequest<T>(url, attempt + 1);
   }
   if (!response.ok) {
     throw new Error(`GitHub ${response.status} for ${url}`);
   }
-  return (await response.json()) as T;
+  return { data: (await response.json()) as T, link: response.headers.get("link") };
+}
+
+export async function githubJson<T>(url: string): Promise<T> {
+  const { data } = await githubRequest<T>(url);
+  return data;
+}
+
+export async function githubJsonPage<T>(url: string): Promise<GithubPage<T>> {
+  return githubRequest<T>(url);
+}
+
+/**
+ * Next page from a GitHub Link header.
+ * Large issue lists reject `page` past 1,000 results and require the `after` cursor.
+ */
+export function nextGithubPage(link: string | null): string | null {
+  if (!link) return null;
+  for (const part of link.split(",")) {
+    const match = part.match(/<([^>]+)>;\s*rel="next"/i);
+    if (!match?.[1]) continue;
+    try {
+      const url = new URL(match[1]);
+      if (url.searchParams.has("after") || url.searchParams.has("before")) url.searchParams.delete("page");
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 export async function mapPool<T, R>(

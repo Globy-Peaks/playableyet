@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { RawReport } from "../types";
+import type { Catalog, RawReport } from "../types";
 import { assembleCatalog } from "./assemble";
 
 const reports: RawReport[] = [
@@ -54,6 +54,41 @@ test("groups regional releases and keeps anyps5 playable separate", () => {
   assert.equal(resogun.history.every((event) => event.initial), true);
   const sarah = catalog.games.find((game) => game.slug === "dreaming-sarah");
   assert.equal(sarah?.reports[0]?.status, "playable");
+});
+
+test("a later snapshot replaces diacritic slugs and remembers the old ones", () => {
+  const previous: Catalog = {
+    generatedAt: "2026-10-16T00:00:00.000Z",
+    games: [
+      {
+        slug: "ghost-of-y-tei",
+        name: "Ghost of Yōtei",
+        titles: [{ id: "PPSA26344", platform: "ps5", name: "Ghost of Yōtei" }],
+        reports: [
+          {
+            emulator: "anyps5",
+            titleId: "PPSA26344",
+            status: "ingame",
+            updatedAt: "2026-10-01",
+            sourceUrl: "https://github.com/AlxcBTW/anyps5-roadmap",
+          },
+        ],
+        history: [],
+      },
+    ],
+  };
+  const report: RawReport = {
+    emulator: "anyps5",
+    titleId: "PPSA26344",
+    name: "Ghost of Yōtei",
+    platform: "ps5",
+    status: "ingame",
+    updatedAt: "2026-10-01",
+    sourceUrl: "https://github.com/AlxcBTW/anyps5-roadmap",
+  };
+  const { catalog } = assembleCatalog([report], new Map(), previous, "2026-10-20T00:00:00.000Z");
+  assert.equal(catalog.games[0]?.slug, "ghost-of-yotei");
+  assert.deepEqual(catalog.games[0]?.aliases, ["ghost-of-y-tei"]);
 });
 
 test("appends history when a later snapshot changes status", () => {

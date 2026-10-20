@@ -26,8 +26,38 @@ export function normalizeName(name: string): string {
   return stripped;
 }
 
+const SLUG_FOLDS: Record<string, string> = {
+  æ: "ae",
+  Æ: "ae",
+  œ: "oe",
+  Œ: "oe",
+  ø: "o",
+  Ø: "o",
+  ł: "l",
+  Ł: "l",
+  ß: "ss",
+  ð: "d",
+  Ð: "d",
+  þ: "th",
+  Þ: "th",
+  đ: "d",
+  Đ: "d",
+  ħ: "h",
+  Ħ: "h",
+  ı: "i",
+  ŋ: "n",
+  Ŋ: "n",
+};
+
+/** Letters for a URL slug: drop accents and apostrophes, then reuse title normalization. */
 export function slugifyName(name: string): string {
-  const slug = normalizeName(name).replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
+  const folded = name
+    .replace(/[\u2122\u00AE\u00A9]/g, "")
+    .replace(/[æÆœŒøØłŁßðÐþÞđĐħĦıŋŊ]/g, (char) => SLUG_FOLDS[char] ?? char)
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .replace(/['’‘ʼ`´]/g, "");
+  const slug = normalizeName(folded).replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
   return slug || "untitled";
 }
 

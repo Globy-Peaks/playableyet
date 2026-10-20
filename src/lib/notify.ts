@@ -41,7 +41,7 @@ export async function sendConfirmEmail(subscription: Subscription) {
 }
 
 export async function notifyPlayable(catalog: Catalog, day: string): Promise<NotifyResult> {
-  const fresh = new Map<string, { name: string; emulators: EmulatorId[] }>();
+  const fresh = new Map<string, { name: string; slug: string; emulators: EmulatorId[] }>();
   for (const game of catalog.games) {
     const emulators = [
       ...new Set(
@@ -50,7 +50,10 @@ export async function notifyPlayable(catalog: Catalog, day: string): Promise<Not
           .map((event) => event.emulator),
       ),
     ];
-    if (emulators.length) fresh.set(game.slug, { name: game.name, emulators });
+    if (!emulators.length) continue;
+    const hit = { name: game.name, slug: game.slug, emulators };
+    fresh.set(game.slug, hit);
+    for (const alias of game.aliases ?? []) fresh.set(alias, hit);
   }
   if (fresh.size === 0) return { sent: 0, skipped: 0 };
 
@@ -72,7 +75,7 @@ export async function notifyPlayable(catalog: Catalog, day: string): Promise<Not
       continue;
     }
     const names = pending.map((emulator) => EMULATORS[emulator].name).join(", ");
-    const page = `${siteUrl()}/games/${subscription.slug}`;
+    const page = `${siteUrl()}/games/${hit.slug}`;
     const unsub = `${siteUrl()}/api/watch/unsubscribe?token=${subscription.unsubToken}`;
     const html = `<p><strong>${escapeHtml(hit.name)}</strong> is now marked playable on ${escapeHtml(names)}.</p><p><a href="${page}">Open the PlayableYet page</a></p><p><a href="${unsub}">Unsubscribe</a></p>`;
     const text = `${hit.name} is now marked playable on ${names}.\n${page}\n\nUnsubscribe: ${unsub}`;

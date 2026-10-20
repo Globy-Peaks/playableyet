@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import { EMULATORS } from "@/lib/emulators";
-import type { Catalog, EmulatorId, SourceFreshness, SourceReport } from "@/lib/types";
+import { syncMetaPath } from "@/lib/paths";
+import type { Catalog, EmulatorId, SourceFreshness, SourceReport, SyncReport } from "@/lib/types";
 import { EMULATOR_IDS } from "@/lib/types";
 import type { PublicSyncStatus } from "@/lib/sync-status";
 
@@ -23,12 +25,39 @@ export function countEmulatorReports(catalog: Catalog | null, id: EmulatorId): n
   return count;
 }
 
+/**
+ * Last recorded successful fetch for a carried count.
+ * Used when a status blob was written before asOf existed.
+ * A different count is a different snapshot, so that timestamp is not reused.
+ */
+export function asOfFromSyncReport(
+  id: string,
+  carriedCount: number,
+  report: Pick<SyncReport, "finishedAt" | "sources"> | null,
+): string | null {
+  if (!report || carriedCount <= 0) return null;
+  const source = report.sources.find((item) => item.id === id);
+  if (!source?.ok || source.count !== carriedCount || !report.finishedAt) return null;
+  return report.finishedAt;
+}
+
+function readSyncReport(): Pick<SyncReport, "finishedAt" | "sources"> | null {
+  try {
+    const parsed = JSON.parse(readFileSync(syncMetaPath, "utf8")) as SyncReport;
+    if (!parsed || typeof parsed.finishedAt !== "string" || !Array.isArray(parsed.sources)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export function buildFreshness(input: {
   fetched: SourceReport[];
   previousCatalog: Catalog | null;
   previousStatus: PublicSyncStatus;
   generatedAt: string;
 }): SourceFreshness[] {
+  const recorded = readSyncReport();
   return input.fetched.map((meta) => {
     if (meta.ok) {
       return { id: meta.id, ok: true, count: meta.count, asOf: input.generatedAt, carried: false };
@@ -40,17 +69,22 @@ export function buildFreshness(input: {
       : prior && prior.count > 0
         ? prior.count
         : 0;
-    const asOf = stored?.asOf ?? prior?.asOf ?? (prior?.ok ? input.previousCatalog?.generatedAt ?? null : null);
+    const asOf =
+      stored?.asOf ??
+      prior?.asOf ??
+      (prior?.ok ? input.previousCatalog?.generatedAt ?? null : null) ??
+      asOfFromSyncReport(meta.id, kept, recorded);
     return { id: meta.id, ok: false, count: kept, asOf, carried: kept > 0 };
   });
 }
 
 /**
  * Fill asOf and kept counts for a status blob written before those fields existed.
- * A failed source with reports still in the catalog is carried, and its asOf stays
- * empty until a successful fetch records one.
+ * A failed source with reports still in the catalog is carried. asOf is the last
+ * stored success, or the committed sync report when that fetch had the same count.
  */
 export function explainSources(status: PublicSyncStatus, catalog: Catalog): SourceFreshness[] {
+  const recorded = readSyncReport();
   return status.sources.map((source) => {
     if (source.ok) {
       return {
@@ -67,7 +101,7 @@ export function explainSources(status: PublicSyncStatus, catalog: Catalog): Sour
       id: source.id,
       ok: false,
       count,
-      asOf: source.asOf,
+      asOf: source.asOf ?? asOfFromSyncReport(source.id, count, recorded),
       carried: source.carried || count > 0,
     };
   });

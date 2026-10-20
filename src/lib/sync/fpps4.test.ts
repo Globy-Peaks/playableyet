@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { nextGithubPage } from "./http";
 import { fpps4SchemeLoop, mergeLabeledIssues, reportFromFpIssue } from "./fetchers";
 
 const knowledge = {
@@ -20,6 +21,18 @@ CUSA06044
 Nothing
 `,
 };
+
+test("GitHub cursor links drop the page parameter past the 1,000-item cap", () => {
+  const link =
+    '<https://api.github.com/repositories/550153238/issues?state=all&per_page=100&page=11&after=CURSOR>; rel="next", <https://api.github.com/repositories/550153238/issues?page=9>; rel="prev"';
+  const next = nextGithubPage(link);
+  assert.ok(next);
+  const url = new URL(next);
+  assert.equal(url.searchParams.get("after"), "CURSOR");
+  assert.equal(url.searchParams.has("page"), false);
+  assert.equal(url.searchParams.get("per_page"), "100");
+  assert.equal(nextGithubPage(null), null);
+});
 
 test("an http and https redirect of the same fpPS4 path is a loop", () => {
   assert.equal(

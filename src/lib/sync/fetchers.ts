@@ -6,7 +6,7 @@ import {
   statusFromLabels,
   toDay,
 } from "@/lib/status";
-import { fetchJson, fetchText, githubJson, mapPool, sleep } from "@/lib/sync/http";
+import { fetchJson, fetchText, githubJson, githubJsonPage, mapPool, nextGithubPage, sleep } from "@/lib/sync/http";
 import { mapAnyPs5, type AnyPs5BlockersFile, type AnyPs5GamesFile, type AnyPs5RoadmapFile } from "@/lib/sync/anyps5";
 
 export type TitleInfo = {
@@ -283,14 +283,8 @@ type FpRow = {
 
 const FP_REPO = "red-prig/fpps4-game-compatibility";
 const FP_DATABASE = "https://api.fpps4.net/database.json";
-const FP_STATUS_LABELS = [
-  "status-playable",
-  "status-ingame",
-  "status-menus",
-  "status-boots",
-  "status-nothing",
-] as const;
 const GITHUB_ISSUE_WINDOW = 1000;
+const GITHUB_ISSUE_PAGE_CAP = 40;
 
 /** True when the host answers an http request with https, or the reverse, for the same path. */
 export function fpps4SchemeLoop(fromUrl: string, location: string | null): boolean {
@@ -412,32 +406,37 @@ async function fetchFpDatabase(): Promise<FpRow[]> {
   throw new Error("api.fpps4.net/database.json redirected too many times");
 }
 
-async function githubLabeledIssuesComplete(repo: string, label: string): Promise<GhIssue[]> {
-  const older = await githubLabeledIssues(repo, label, "asc");
-  if (older.length < GITHUB_ISSUE_WINDOW) return older;
-  const newer = await githubLabeledIssues(repo, label, "desc");
-  const merged = mergeLabeledIssues(older, newer);
-  if (!merged.complete) {
-    throw new Error(`${label} does not fit in two GitHub issue windows of ${GITHUB_ISSUE_WINDOW}`);
+export async function listGithubIssues(startUrl: string): Promise<GhIssue[]> {
+  const issues: GhIssue[] = [];
+  const seenUrls = new Set<string>();
+  let url: string | null = startUrl;
+  for (let page = 1; url && page <= GITHUB_ISSUE_PAGE_CAP; page += 1) {
+    if (seenUrls.has(url)) throw new Error("GitHub issue pagination repeated a page");
+    seenUrls.add(url);
+    if (page > 1) await sleep(PAGE_GAP_MS);
+    const { data, link } = await githubJsonPage<GhIssue[]>(url);
+    if (!Array.isArray(data)) throw new Error(`GitHub issues were not a list for ${url}`);
+    for (const issue of data) {
+      if (!issue?.pull_request) issues.push(issue);
+    }
+    if (data.length < 100) return issues;
+    url = nextGithubPage(link);
+    if (!url) return issues;
   }
-  return merged.issues;
+  throw new Error(`GitHub issue list exceeded ${GITHUB_ISSUE_PAGE_CAP} pages`);
 }
 
 async function fetchFpGithub(): Promise<{ reports: RawReport[]; note: string }> {
+  const issues = await listGithubIssues(
+    `https://api.github.com/repos/${FP_REPO}/issues?state=all&per_page=100&sort=created&direction=desc`,
+  );
   const seen = new Set<string>();
-  const issues: GhIssue[] = [];
-  for (const label of FP_STATUS_LABELS) {
-    const labeled = await githubLabeledIssuesComplete(FP_REPO, label);
-    for (const issue of labeled) {
-      const key = issue.html_url;
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      issues.push(issue);
-    }
-  }
   const reports: RawReport[] = [];
   let skipped = 0;
   for (const issue of issues) {
+    const key = issue.html_url;
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
     const report = reportFromFpIssue(issue);
     if (!report) {
       skipped += 1;
@@ -449,7 +448,7 @@ async function fetchFpGithub(): Promise<{ reports: RawReport[]; note: string }> 
   if (deduped.length === 0) throw new Error("GitHub issues produced no fpPS4 reports");
   return {
     reports: deduped,
-    note: `${issues.length} labeled GitHub issues collapsed to ${deduped.length} title IDs. ${skipped} skipped. System-firmware rows are skipped. status-nothing is read from both ends of the issue list because GitHub only returns 1,000 issues per query.`,
+    note: `${issues.length} GitHub issues collapsed to ${deduped.length} title IDs. ${skipped} skipped. Pages follow the Link cursor because numbered pages stop at 1,000 issues. System-firmware rows are skipped.`,
   };
 }
 

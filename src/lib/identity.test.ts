@@ -5,6 +5,10 @@ import { normalizeName, slugifyName, splitTitleAndId, UnionFind } from "./identi
 test("normalizes titles for grouping", () => {
   assert.equal(normalizeName("RESOGUN™ (USA)"), "resogun");
   assert.equal(slugifyName("The Last of Us™"), "the-last-of-us");
+  assert.equal(slugifyName("Ghost of Yōtei"), "ghost-of-yotei");
+  assert.equal(slugifyName("Demon's Souls"), "demons-souls");
+  assert.equal(slugifyName("Pokémon"), "pokemon");
+  assert.equal(slugifyName("Æon Flux"), "aeon-flux");
   assert.notEqual(normalizeName("The Last of Us"), normalizeName("The Last of Us Remastered"));
 });
 

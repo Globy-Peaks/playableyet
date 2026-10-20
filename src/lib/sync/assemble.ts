@@ -1,6 +1,7 @@
 import type { Catalog, Game, HistoryEvent, RawReport, Report, SearchEntry, TitleRef } from "@/lib/types";
 import type { EmulatorId } from "@/lib/types";
 import { cleanDisplayName, isUsefulTitle, normalizeName, slugifyName, UnionFind } from "@/lib/identity";
+import { withCanonicalSlugs } from "@/lib/slugs";
 import { bestStatus } from "@/lib/status";
 import type { TitleInfo } from "@/lib/sync/fetchers";
 
@@ -65,7 +66,6 @@ export function assembleCatalog(
     for (const title of game.titles) previousByTitle.set(title.id, game);
   }
 
-  const usedSlugs = new Set<string>();
   const games: Game[] = [];
   let changes = 0;
   const today = generatedAt.slice(0, 10);
@@ -80,10 +80,7 @@ export function assembleCatalog(
     const previousGames = [...previousHits.values()];
     const anchor = previousGames.sort((a, b) => b.titles.length - a.titles.length)[0];
     const name = chooseName(bucket, titles, anchor?.name);
-    let slug = anchor?.slug || slugifyName(name);
-    if (usedSlugs.has(slug)) slug = `${slugifyName(name)}-${titleIds[0].toLowerCase()}`;
-    if (usedSlugs.has(slug)) slug = `${slug}-${titleIds[0].toLowerCase()}`;
-    usedSlugs.add(slug);
+    const slug = anchor?.slug || slugifyName(name);
 
     const titleRefs: TitleRef[] = titleIds.sort().map((id) => {
       const named = bucket.find((report) => report.titleId === id && report.name);
@@ -144,8 +141,12 @@ export function assembleCatalog(
       .map((report) => toStoredReport(report))
       .sort((a, b) => a.emulator.localeCompare(b.emulator) || a.titleId.localeCompare(b.titleId));
 
+    const inherited = [
+      ...new Set(previousGames.flatMap((game) => [game.slug, ...(game.aliases ?? [])])),
+    ];
     games.push({
       slug,
+      ...(inherited.length ? { aliases: inherited } : {}),
       name,
       titles: titleRefs,
       reports: storedReports,
@@ -153,8 +154,9 @@ export function assembleCatalog(
     });
   }
 
-  games.sort((a, b) => a.name.localeCompare(b.name) || a.slug.localeCompare(b.slug));
-  return { catalog: { generatedAt, games }, changes };
+  const catalog = withCanonicalSlugs({ generatedAt, games });
+  catalog.games.sort((a, b) => a.name.localeCompare(b.name) || a.slug.localeCompare(b.slug));
+  return { catalog, changes };
 }
 
 function chooseName(bucket: RawReport[], titles: Map<string, TitleInfo>, previousName?: string): string {
