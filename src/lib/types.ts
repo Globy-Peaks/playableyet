@@ -62,6 +62,8 @@ export type TitleRef = {
   id: string;
   platform: Platform;
   name?: string;
+  /** PlayStation-Titles region code, such as UP or EP, when that index had one. */
+  region?: string;
 };
 
 export type Game = {

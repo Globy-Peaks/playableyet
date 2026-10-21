@@ -8,7 +8,7 @@ const item: FeedItem = {
   slug: "dreaming-sarah",
   name: "Dreaming Sarah",
   emulator: "anyps5",
-  titleId: "PPSA02929",
+  editions: [{ id: "PPSA02929" }],
   at: "2026-10-14",
   status: "playable",
 };

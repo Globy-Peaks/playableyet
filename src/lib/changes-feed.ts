@@ -1,6 +1,7 @@
 import type { FeedItem } from "@/lib/feeds";
 import { EMULATORS } from "@/lib/emulators";
 import { STATUS_LABEL } from "@/lib/status";
+import { formatEditionList } from "@/lib/title-edition";
 
 export const CHANGES_PAGE_SIZE = 100;
 
@@ -24,14 +25,17 @@ export function rssXml(items: FeedItem[], origin: string, generatedAt: string): 
 function itemXml(item: FeedItem, origin: string): string {
   const from = item.from ? STATUS_LABEL[item.from] : "previous";
   const title = `${item.name}: ${from} to ${STATUS_LABEL[item.status]} on ${EMULATORS[item.emulator].name}`;
+  const editions = formatEditionList(item.editions);
+  const description = editions ? `${title}. Editions: ${editions}.` : title;
+  const ids = item.editions.map((edition) => edition.id).join(",");
   const link = `${origin}/games/${item.slug}`;
   return [
     `<item>`,
     `<title>${escapeXml(title)}</title>`,
     `<link>${escapeXml(link)}</link>`,
-    `<guid isPermaLink="false">${escapeXml(`${item.slug}:${item.emulator}:${item.titleId}:${item.at}:${item.from ?? ""}:${item.status}`)}</guid>`,
+    `<guid isPermaLink="false">${escapeXml(`${item.slug}:${item.emulator}:${ids}:${item.at}:${item.from ?? ""}:${item.status}`)}</guid>`,
     `<pubDate>${rfc822(item.at)}</pubDate>`,
-    `<description>${escapeXml(title)}</description>`,
+    `<description>${escapeXml(description)}</description>`,
     `</item>`,
   ].join("");
 }

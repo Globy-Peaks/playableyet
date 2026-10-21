@@ -82,14 +82,21 @@ export function assembleCatalog(
     const name = chooseName(bucket, titles, anchor?.name);
     const slug = anchor?.slug || slugifyName(name);
 
+    const priorTitles = new Map<string, TitleRef>();
+    for (const game of previousGames) {
+      for (const title of game.titles) priorTitles.set(title.id, title);
+    }
+
     const titleRefs: TitleRef[] = titleIds.sort().map((id) => {
       const named = bucket.find((report) => report.titleId === id && report.name);
       const info = titles.get(id);
       const platform = bucket.find((report) => report.titleId === id)?.platform ?? "ps3";
+      const region = info?.region || priorTitles.get(id)?.region;
       return {
         id,
         platform,
         name: cleanDisplayName(named?.name || info?.name || ""),
+        ...(region ? { region } : {}),
       };
     });
 
