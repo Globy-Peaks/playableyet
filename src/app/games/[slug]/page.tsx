@@ -15,6 +15,7 @@ import { emulatorPath, emulatorStatusPath, platformPath } from "@/lib/hubs";
 import { primaryPlatform, relatedGames } from "@/lib/related";
 import { allowedHttpUrl, siteUrl } from "@/lib/site";
 import { breadcrumbJsonLd } from "@/lib/site-jsonld";
+import { latestStatusChangeAt } from "@/lib/report-dates";
 import { bestStatus } from "@/lib/status";
 import { statusPhrase } from "@/lib/status-copy";
 import {
@@ -24,6 +25,7 @@ import {
   ANYPS5_ROADMAP_SITE,
   anyps5RoadmapGameUrl,
 } from "@/lib/sync/anyps5";
+import { titleEditionLabel } from "@/lib/title-edition";
 import { EMULATOR_IDS, PLATFORMS, type BringUp, type Game, type Platform } from "@/lib/types";
 import { readCatalogFile } from "@/lib/catalog-store";
 import { withCanonicalSlugs } from "@/lib/slugs";
@@ -131,7 +133,8 @@ async function GameArticle({ game }: { game: Game }) {
               className="rounded-full border border-border bg-card px-2.5 py-1 font-mono text-xs text-muted-foreground"
             >
               {title.id}
-              <span className="ml-2 text-foreground/70">{PLATFORM_LABEL[title.platform]}</span>
+              <span className="ml-2 font-sans text-foreground/70">{PLATFORM_LABEL[title.platform]}</span>
+              <span className="ml-2 font-sans text-foreground/70">{titleEditionLabel(title.id, title.region)}</span>
             </li>
           ))}
         </ul>
@@ -179,6 +182,10 @@ async function GameArticle({ game }: { game: Game }) {
       <section className="rounded-xl border border-border bg-card">
         <header className="border-b border-border px-4 py-3">
           <h2 className="font-medium">Status history</h2>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Status last changed is the day a sync recorded a different status. Data synced is the date on the source
+            report. Those two days can differ.
+          </p>
         </header>
         {history.length === 0 ? (
           <p className="px-4 py-5 text-sm text-muted-foreground">No history in this snapshot.</p>
@@ -192,6 +199,9 @@ async function GameArticle({ game }: { game: Game }) {
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{EMULATORS[event.emulator].name}</span>
                   <span className="font-mono text-xs text-muted-foreground">{event.titleId}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {titleEditionLabel(event.titleId, game.titles.find((title) => title.id === event.titleId)?.region)}
+                  </span>
                   {event.initial ? (
                     <span className="text-muted-foreground">First seen</span>
                   ) : event.from ? (
@@ -287,10 +297,7 @@ function PlatformColumn({ platform, game }: { platform: Platform; game: Game }) 
                   </Link>
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">{statusPhrase(report.emulator, report.status)}</p>
-                <p className="font-mono text-xs text-muted-foreground">
-                  {report.titleId} · updated {report.updatedAt}
-                  {report.os?.length ? ` · ${report.os.join(", ")}` : ""}
-                </p>
+                <ReportDates game={game} report={report} />
                 {report.note ? <p className="text-sm leading-6 text-muted-foreground">{report.note}</p> : null}
                 {report.bringUp ? <BringUpSummary bringUp={report.bringUp} /> : null}
                 {report.emulator === "anyps5" ? (
@@ -306,6 +313,32 @@ function PlatformColumn({ platform, game }: { platform: Platform; game: Game }) 
         </ul>
       )}
     </section>
+  );
+}
+
+function ReportDates({ game, report }: { game: Game; report: Game["reports"][number] }) {
+  const region = game.titles.find((title) => title.id === report.titleId)?.region;
+  const changedAt = latestStatusChangeAt(game.history, report.emulator, report.titleId);
+  return (
+    <div className="space-y-1 text-xs text-muted-foreground">
+      <p>
+        <span className="font-mono text-foreground/80">{report.titleId}</span>
+        <span> · {titleEditionLabel(report.titleId, region)}</span>
+        {report.os?.length ? ` · ${report.os.join(", ")}` : ""}
+      </p>
+      <dl className="grid gap-1">
+        {changedAt ? (
+          <div className="flex flex-wrap gap-x-2">
+            <dt>Status last changed</dt>
+            <dd className="font-mono text-foreground/80">{changedAt}</dd>
+          </div>
+        ) : null}
+        <div className="flex flex-wrap gap-x-2">
+          <dt>Data synced</dt>
+          <dd className="font-mono text-foreground/80">{report.updatedAt}</dd>
+        </div>
+      </dl>
+    </div>
   );
 }
 

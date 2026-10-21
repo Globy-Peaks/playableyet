@@ -7,6 +7,7 @@ import { CHANGES_PAGE_SIZE } from "@/lib/changes-feed";
 import { EMULATORS } from "@/lib/emulators";
 import { statusChanges } from "@/lib/feeds";
 import { statusPhrase } from "@/lib/status-copy";
+import { formatEditionList } from "@/lib/title-edition";
 
 export const metadata: Metadata = {
   title: "Recent status changes",
@@ -60,7 +61,7 @@ export default async function ChangesPage() {
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
           {shown.map((item) => (
-            <li key={`${item.slug}-${item.emulator}-${item.titleId}-${item.at}-${item.from}-${item.status}`} className="px-4 py-3">
+            <li key={`${item.slug}-${item.emulator}-${item.editions.map((edition) => edition.id).join(",")}-${item.at}-${item.from}-${item.status}`} className="px-4 py-3">
               <Link href={`/games/${item.slug}`} className="font-medium hover:underline">
                 {item.name}
               </Link>
@@ -69,8 +70,12 @@ export default async function ChangesPage() {
                 {item.from ? <StatusBadge status={item.from} /> : null}
                 <span>to</span>
                 <StatusBadge status={item.status} />
+                <span>Status last changed</span>
                 <span className="font-mono">{item.at}</span>
               </p>
+              {item.editions.length > 0 ? (
+                <p className="mt-1 font-mono text-xs text-muted-foreground">{formatEditionList(item.editions)}</p>
+              ) : null}
               {item.from ? (
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   {statusPhrase(item.emulator, item.from)} to {statusPhrase(item.emulator, item.status)}.
@@ -82,8 +87,8 @@ export default async function ChangesPage() {
       )}
       {changes.length > shown.length ? (
         <p className="text-sm text-muted-foreground">
-          Showing {shown.length.toLocaleString()} of {changes.length.toLocaleString()} recorded changes. The feed lists the
-          same {shown.length.toLocaleString()}.
+          Showing {shown.length.toLocaleString()} of {changes.length.toLocaleString()} status changes. Editions of the same
+          game are listed once. The feed lists the same {shown.length.toLocaleString()}.
         </p>
       ) : null}
     </main>

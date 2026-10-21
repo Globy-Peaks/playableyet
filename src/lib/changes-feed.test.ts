@@ -8,13 +8,19 @@ test("the feed escapes markup and only includes real from-to changes", () => {
     slug: "knack-2",
     name: "Knack & 2",
     emulator: "shadps4",
-    titleId: "CUSA00001",
+    editions: [
+      { id: "CUSA00001", region: "UP" },
+      { id: "CUSA00002", region: "EP" },
+    ],
     at: "2026-10-16",
     status: "ingame",
     from: "nothing",
   };
   const xml = rssXml([item], "https://playableyet.vercel.app", "2026-10-17T06:43:39.568Z");
   assert.match(xml, /Knack &amp; 2: Nothing to Ingame on shadPS4/);
+  assert.match(xml, /Editions: CUSA00001 \(US, format unknown\), CUSA00002 \(EU, format unknown\)/);
+  assert.match(xml, /<guid isPermaLink="false">knack-2:shadps4:CUSA00001,CUSA00002:2026-10-16:nothing:ingame<\/guid>/);
+  assert.equal(xml.match(/<item>/g)?.length, 1);
   assert.match(xml, /<link>https:\/\/playableyet.vercel.app\/games\/knack-2<\/link>/);
   assert.equal(xml.includes("<script"), false);
   assert.equal(escapeXml("<tag>"), "&lt;tag&gt;");

@@ -38,8 +38,8 @@ const reports: RawReport[] = [
 
 test("groups regional releases and keeps anyps5 playable separate", () => {
   const titles = new Map([
-    ["CUSA00038", { name: "RESOGUN", conceptId: "203706", regionRank: 0 }],
-    ["CUSA00005", { name: "RESOGUN", conceptId: "203706", regionRank: 2 }],
+    ["CUSA00038", { name: "RESOGUN", conceptId: "203706", regionRank: 0, region: "UP" }],
+    ["CUSA00005", { name: "RESOGUN", conceptId: "203706", regionRank: 2, region: "EP" }],
   ]);
   const { catalog, changes } = assembleCatalog(reports, titles, null, "2026-10-15T00:00:00.000Z");
   assert.equal(changes, 0);
@@ -50,6 +50,8 @@ test("groups regional releases and keeps anyps5 playable separate", () => {
     resogun.titles.map((title) => title.id).sort(),
     ["CUSA00005", "CUSA00038"],
   );
+  assert.equal(resogun.titles.find((title) => title.id === "CUSA00038")?.region, "UP");
+  assert.equal(resogun.titles.find((title) => title.id === "CUSA00005")?.region, "EP");
   assert.equal(resogun.reports.length, 2);
   assert.equal(resogun.history.every((event) => event.initial), true);
   const sarah = catalog.games.find((game) => game.slug === "dreaming-sarah");
@@ -63,7 +65,7 @@ test("a later snapshot replaces diacritic slugs and remembers the old ones", () 
       {
         slug: "ghost-of-y-tei",
         name: "Ghost of Yōtei",
-        titles: [{ id: "PPSA26344", platform: "ps5", name: "Ghost of Yōtei" }],
+        titles: [{ id: "PPSA26344", platform: "ps5", name: "Ghost of Yōtei", region: "JP" }],
         reports: [
           {
             emulator: "anyps5",
@@ -89,6 +91,7 @@ test("a later snapshot replaces diacritic slugs and remembers the old ones", () 
   const { catalog } = assembleCatalog([report], new Map(), previous, "2026-10-20T00:00:00.000Z");
   assert.equal(catalog.games[0]?.slug, "ghost-of-yotei");
   assert.deepEqual(catalog.games[0]?.aliases, ["ghost-of-y-tei"]);
+  assert.equal(catalog.games[0]?.titles[0]?.region, "JP");
 });
 
 test("appends history when a later snapshot changes status", () => {

@@ -13,6 +13,8 @@ export type TitleInfo = {
   name: string;
   conceptId?: string;
   regionRank: number;
+  /** Region code from the PlayStation-Titles index, when the row had one. */
+  region?: string;
 };
 
 export type SourceFetch = {
@@ -713,7 +715,7 @@ export async function fetchTitleIndex(): Promise<{
   }
 }
 
-function ingestTitles(target: Map<string, TitleInfo>, tsv: string) {
+export function ingestTitles(target: Map<string, TitleInfo>, tsv: string) {
   const lines = tsv.split(/\r?\n/);
   const header = lines[0]?.split("\t") ?? [];
   const idCol = header.indexOf("titleId");
@@ -728,17 +730,21 @@ function ingestTitles(target: Map<string, TitleInfo>, tsv: string) {
     const titleId = rawId.replace(/_\d+$/, "").toUpperCase();
     const name = cols[nameCol] ?? "";
     if (!isTitleId(titleId) || !isUsefulTitle(name)) continue;
-    const rank = regionRank(cols[regionCol]);
+    const region = (cols[regionCol] ?? "").trim().toUpperCase();
+    const rank = regionRank(region);
     const conceptId = conceptCol >= 0 ? cols[conceptCol] : undefined;
     const existing = target.get(titleId);
     if (!existing || rank < existing.regionRank) {
+      const keptRegion = region || existing?.region;
       target.set(titleId, {
         name,
         conceptId: conceptId || existing?.conceptId,
         regionRank: rank,
+        ...(keptRegion ? { region: keptRegion } : {}),
       });
-    } else if (existing && !existing.conceptId && conceptId) {
-      existing.conceptId = conceptId;
+    } else if (existing) {
+      if (!existing.conceptId && conceptId) existing.conceptId = conceptId;
+      if (!existing.region && region) existing.region = region;
     }
   }
 }

@@ -9,13 +9,13 @@ import { SponsoredBanner } from "@/components/sponsored-banner";
 import { StatusBadge } from "@/components/status-badge";
 import { loadCatalog, loadSyncStatus } from "@/lib/catalog";
 import { EMULATORS } from "@/lib/emulators";
-import { newlyPlayable, statusChanges, summarize } from "@/lib/feeds";
+import { newlyPlayable, statusChanges, summarize, type FeedItem } from "@/lib/feeds";
 import { serializeJsonLd } from "@/lib/game-jsonld";
 import { filterSearchEntries, homeSearchHref, readHomeSearch, searchResultTitle } from "@/lib/home-search";
 import { explainSources, staleSourceMessages } from "@/lib/source-freshness";
 import { SITE_DESCRIPTION, siteUrl } from "@/lib/site";
 import { homeJsonLd } from "@/lib/site-jsonld";
-import { STATUS_LABEL } from "@/lib/status";
+import { formatEditionList } from "@/lib/title-edition";
 import { toSearchIndex } from "@/lib/sync/assemble";
 
 // Query results have to be in the first HTML response. A Suspense hole would
@@ -101,7 +101,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       <section className="grid gap-4 lg:grid-cols-2">
         <Feed
           title="Newly playable this week"
-          empty="No playable report is dated in the last 7 days of this snapshot."
+          empty="No status changed to Playable in the last 7 days of this snapshot."
           items={shown}
           extra={fresh.length > 8 ? fresh.length - 8 : 0}
           kind="new"
@@ -147,14 +147,7 @@ function Feed({
   title: string;
   href?: string;
   empty: string;
-  items: {
-    slug: string;
-    name: string;
-    emulator: keyof typeof EMULATORS;
-    at: string;
-    status: keyof typeof STATUS_LABEL;
-    from?: keyof typeof STATUS_LABEL;
-  }[];
+  items: FeedItem[];
   extra: number;
   kind: "new" | "change";
 }) {
@@ -181,7 +174,7 @@ function Feed({
       ) : (
         <ul className="divide-y divide-border">
           {items.map((item) => (
-            <li key={`${item.slug}-${item.emulator}-${item.at}-${item.status}`} className="px-4 py-3">
+            <li key={`${item.slug}-${item.emulator}-${item.at}-${item.from ?? ""}-${item.status}`} className="px-4 py-3">
               <Link href={`/games/${item.slug}`} className="font-medium hover:underline">
                 {item.name}
               </Link>
@@ -194,8 +187,14 @@ function Feed({
                   </>
                 ) : null}
                 <StatusBadge status={item.status} />
+                <span>Status last changed</span>
                 <span className="font-mono">{item.at}</span>
               </p>
+              {kind === "change" && item.editions.length > 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  <span className="font-mono">{formatEditionList(item.editions)}</span>
+                </p>
+              ) : null}
             </li>
           ))}
         </ul>

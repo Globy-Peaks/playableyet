@@ -115,6 +115,6 @@ From the KytyPS5 game-status guide. KytyPS5 does not publish a Playable definiti
 
 ## Snapshot
 
-The rendered catalog is `data/catalog.json` in the repository. A daily job at 06:15 UTC rebuilds it. On Vercel the newer snapshot is the public Blob objects `playableyet/catalog.json` and `playableyet/search-index.json`. The home page shows `generatedAt` from that snapshot. Each game has `slug`, `name`, `titles` (`id`, `platform`, optional `name`), `reports`, and `history`. A report has `emulator`, `titleId`, `status`, `updatedAt` (`YYYY-MM-DD`), `sourceUrl`, and sometimes `os`, `note`, and `bringUp` (`stage`, `detail`, `blockers`).
+The rendered catalog is `data/catalog.json` in the repository. A daily job at 06:15 UTC rebuilds it. On Vercel the newer snapshot is the public Blob objects `playableyet/catalog.json` and `playableyet/search-index.json`. The home page shows `generatedAt` from that snapshot. Each game has `slug`, `name`, `titles` (`id`, `platform`, optional `name`, optional `region` from the PlayStation-Titles index), `reports`, and `history`. A report has `emulator`, `titleId`, `status`, `updatedAt` (`YYYY-MM-DD`), `sourceUrl`, and sometimes `os`, `note`, and `bringUp` (`stage`, `detail`, `blockers`).
 
 Source links on the site are limited to the projects above. PlayableYet does not link to ROM sites, firmware, BIOS images, or decryption keys.
