@@ -31,6 +31,8 @@ const nextConfig: NextConfig = {
     "/ps5": ["./data/catalog.json"],
     "/emulators/[emulator]": ["./data/catalog.json"],
     "/emulators/[emulator]/[status]": ["./data/catalog.json"],
+    "/emulators/[emulator]/[status]/[page]": ["./data/catalog.json"],
+    "/llms.txt": ["./data/catalog.json"],
     "/changes": ["./data/catalog.json"],
     "/feed.xml": ["./data/catalog.json"],
     "/games/[slug]/opengraph-image": ["./data/catalog.json"],

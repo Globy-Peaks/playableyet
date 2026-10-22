@@ -1,4 +1,4 @@
-import { EMULATORS } from "@/lib/emulators";
+import { emulatorCoverage } from "@/lib/hubs";
 import { isRecordedStatusChange } from "@/lib/report-dates";
 import { daysBetween } from "@/lib/status";
 import type { TitleEdition } from "@/lib/title-edition";
@@ -14,30 +14,17 @@ export type FeedItem = {
   from?: Status;
 };
 
-export type EmulatorStat = {
-  emulator: EmulatorId;
-  reports: number;
-  playable: number;
-};
-
 export function summarize(catalog: Catalog) {
-  const stats = new Map<EmulatorId, EmulatorStat>();
-  for (const id of Object.keys(EMULATORS) as EmulatorId[]) {
-    stats.set(id, { emulator: id, reports: 0, playable: 0 });
-  }
-  for (const game of catalog.games) {
-    for (const report of game.reports) {
-      const stat = stats.get(report.emulator);
-      if (!stat) continue;
-      stat.reports += 1;
-      if (report.status === "playable") stat.playable += 1;
-    }
-  }
   return {
     games: catalog.games.length,
     generatedAt: catalog.generatedAt,
-    emulators: [...stats.values()],
+    emulators: emulatorCoverage(catalog),
   };
+}
+
+/** Moves to Playable recorded in history, newest first. A first sighting is not a move. */
+export function recentlyPlayable(catalog: Catalog, emulator: EmulatorId): FeedItem[] {
+  return statusChanges(catalog).filter((item) => item.emulator === emulator && item.status === "playable");
 }
 
 function editionFor(regions: Map<string, string | undefined>, titleId: string): TitleEdition {

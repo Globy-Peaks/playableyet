@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
 import { loadCatalog } from "@/lib/catalog";
 import { CATALOG_CACHE_TAG } from "@/lib/catalog-tag";
-import { emulatorPath, emulatorStatusPath, platformPath } from "@/lib/hubs";
+import { emulatorListingPaths, emulatorPath, emulatorStatusPath, platformPath } from "@/lib/hubs";
 import { gameLastModified } from "@/lib/sitemap-dates";
 import { siteUrl } from "@/lib/site";
 import { EMULATOR_IDS, PLATFORMS, STATUSES } from "@/lib/types";
@@ -48,6 +48,12 @@ async function cachedSitemap(origin: string): Promise<MetadataRoute.Sitemap> {
         priority: 0.5,
       })),
     ),
+    ...emulatorListingPaths(catalog).map((path) => ({
+      url: `${origin}${path}`,
+      lastModified: updated,
+      changeFrequency: "daily" as const,
+      priority: 0.4,
+    })),
     { url: `${origin}/llms.txt`, lastModified: updated, changeFrequency: "monthly", priority: 0.2 },
     { url: `${origin}/llms-full.txt`, lastModified: updated, changeFrequency: "monthly", priority: 0.2 },
     ...catalog.games.map((game) => ({
