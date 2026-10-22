@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { loadCatalog, loadSyncStatus } from "@/lib/catalog";
 import { EMULATORS } from "@/lib/emulators";
 import { newlyPlayable, statusChanges, summarize, type FeedItem } from "@/lib/feeds";
+import { formatPlayablePercent, emulatorPath } from "@/lib/hubs";
 import { serializeJsonLd } from "@/lib/game-jsonld";
 import { filterSearchEntries, homeSearchHref, readHomeSearch, searchResultTitle } from "@/lib/home-search";
 import { explainSources, staleSourceMessages } from "@/lib/source-freshness";
@@ -40,7 +41,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/">): Promis
 
 export default async function HomePage({ searchParams }: PageProps<"/">) {
   const search = readHomeSearch(await searchParams);
-  const catalog = await loadCatalog();
+  const [catalog, syncStatus] = await Promise.all([loadCatalog(), loadSyncStatus()]);
   const summary = summarize(catalog);
   const fresh = newlyPlayable(catalog);
   const changes = statusChanges(catalog);
@@ -50,7 +51,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const entries = toSearchIndex(catalog);
   const matches = filterSearchEntries(entries, search);
   const title = searchResultTitle(search);
-  const sourceNotes = staleSourceMessages(explainSources(await loadSyncStatus(), catalog), catalog.generatedAt);
+  const sourceNotes = staleSourceMessages(explainSources(syncStatus, catalog), catalog.generatedAt);
   const staleSources = new Set(sourceNotes.map((note) => note.id));
 
   return (
@@ -82,20 +83,36 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       <SponsoredBanner />
 
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        {summary.emulators.map((stat) => (
-          <div key={stat.emulator} className="rounded-xl border border-border bg-card px-3 py-3">
-            <p className="text-sm font-medium">{EMULATORS[stat.emulator].name}</p>
-            <p className="mt-1 font-mono text-xs text-muted-foreground">{EMULATORS[stat.emulator].kindLabel}</p>
-            <p className="mt-3 text-sm">
-              <span className="font-semibold text-foreground">{stat.playable.toLocaleString()}</span>
-              <span className="text-muted-foreground"> playable</span>
-            </p>
-            <p className="text-xs text-muted-foreground">{stat.reports.toLocaleString()} reports</p>
-            {staleSources.has(stat.emulator) ? (
-              <p className="mt-1 text-xs text-muted-foreground">Older than this snapshot</p>
-            ) : null}
-          </div>
-        ))}
+        {summary.emulators.map((stat) => {
+          const percent = formatPlayablePercent(stat.playableGames, stat.games);
+          return (
+            <Link
+              key={stat.emulator}
+              href={emulatorPath(stat.emulator)}
+              className="rounded-xl border border-border bg-card px-3 py-3 hover:bg-accent/60"
+            >
+              <p className="text-sm font-medium">{EMULATORS[stat.emulator].name}</p>
+              <p className="mt-1 font-mono text-xs text-muted-foreground">{EMULATORS[stat.emulator].kindLabel}</p>
+              {stat.games === 0 ? (
+                <p className="mt-3 text-sm text-muted-foreground">No reports</p>
+              ) : (
+                <>
+                  <p className="mt-3 text-sm leading-5">
+                    <span className="font-semibold text-foreground">{stat.playableGames.toLocaleString("en-US")}</span>
+                    <span className="text-muted-foreground"> / {stat.games.toLocaleString("en-US")} games</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">{percent} of games Playable</p>
+                  <p className="text-xs text-muted-foreground">
+                    {stat.playableTitleIds.toLocaleString("en-US")} / {stat.titleIds.toLocaleString("en-US")} title IDs
+                  </p>
+                </>
+              )}
+              {staleSources.has(stat.emulator) ? (
+                <p className="mt-1 text-xs text-muted-foreground">Older than this snapshot</p>
+              ) : null}
+            </Link>
+          );
+        })}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">

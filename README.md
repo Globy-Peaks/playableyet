@@ -64,7 +64,7 @@ Watch signups are not part of the catalog. Locally they live in gitignored `data
 
 Each successful watchlist read or write deletes `playableyet/watchlist.json` if an older build left it behind. A signup stays pending until the confirmation link is opened. Unsubscribe deletes it. A playable transition notifies confirmed addresses once per project, and only when Resend is configured.
 
-`/llms.txt` and `/llms-full.txt` describe the site, sources, statuses, and URL patterns for AI tools. Game pages include schema.org `VideoGame` structured data with each project’s status id.
+`/llms.txt` is generated from the snapshot the site is serving and includes each project’s playable game count, percentage, and title ID count. `/llms-full.txt` describes sources, statuses, and URL patterns. Game pages include schema.org `VideoGame` structured data with each project’s status id.
 
 ## Deploy on Vercel
 

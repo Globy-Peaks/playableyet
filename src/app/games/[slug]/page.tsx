@@ -5,6 +5,7 @@ import { AnyPs5Warning } from "@/components/anyps5-warning";
 import { NewsletterForm } from "@/components/newsletter-form";
 import { SponsoredBanner } from "@/components/sponsored-banner";
 import { StatusBadge } from "@/components/status-badge";
+import { VersionCallout } from "@/components/version-callout";
 import { WatchForm } from "@/components/watch-form";
 import { loadCatalog, loadGame } from "@/lib/catalog";
 import { EMULATORS, PLATFORM_LABEL } from "@/lib/emulators";
@@ -139,6 +140,8 @@ async function GameArticle({ game }: { game: Game }) {
           ))}
         </ul>
       </div>
+
+      <VersionCallout game={game} />
 
       <SponsoredBanner />
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { newlyPlayable, statusChanges } from "./feeds";
+import { newlyPlayable, recentlyPlayable, statusChanges } from "./feeds";
 import type { Catalog, Game } from "./types";
 
 function game(partial: Pick<Game, "slug" | "name" | "reports" | "history"> & Partial<Pick<Game, "titles">>): Game {
@@ -146,4 +146,9 @@ test("status changes group editions of one game and keep a different day separat
     ["BLUS30166"],
   );
   assert.equal(items[1]?.at, "2026-10-17");
+  assert.deepEqual(
+    recentlyPlayable(catalog, "rpcs3").map((item) => item.at),
+    ["2026-10-21", "2026-10-17"],
+  );
+  assert.equal(recentlyPlayable(catalog, "shadps4").length, 0);
 });
