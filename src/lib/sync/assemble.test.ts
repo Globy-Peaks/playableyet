@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Catalog, RawReport } from "../types";
+import { normalizedTitleCollisions } from "../title-groups";
 import { assembleCatalog } from "./assemble";
 
 const reports: RawReport[] = [
@@ -92,6 +93,124 @@ test("a later snapshot replaces diacritic slugs and remembers the old ones", () 
   assert.equal(catalog.games[0]?.slug, "ghost-of-yotei");
   assert.deepEqual(catalog.games[0]?.aliases, ["ghost-of-y-tei"]);
   assert.equal(catalog.games[0]?.titles[0]?.region, "JP");
+});
+
+test("apostrophes and punctuation do not split one game across two pages", () => {
+  const wolverine: RawReport[] = [
+    {
+      emulator: "anyps5",
+      titleId: "PPSA03671",
+      name: "Marvel's Wolverine",
+      platform: "ps5",
+      status: "in-bring-up",
+      updatedAt: "2026-10-20",
+      sourceUrl: "https://github.com/AlxcBTW/anyps5-roadmap",
+    },
+    {
+      emulator: "kytyps5",
+      titleId: "PPSA03671",
+      name: "Marvel's Wolverine",
+      platform: "ps5",
+      status: "boots",
+      updatedAt: "2026-10-20",
+      sourceUrl: "https://github.com/InoriRus/KytyPS5",
+    },
+    {
+      emulator: "kytyps5",
+      titleId: "PPSA03617",
+      name: "Marvels Wolverine",
+      platform: "ps5",
+      status: "nothing",
+      updatedAt: "2026-10-20",
+      sourceUrl: "https://github.com/InoriRus/KytyPS5",
+    },
+  ];
+  const first = assembleCatalog(wolverine, new Map(), null, "2026-10-20T06:43:00.000Z");
+  assert.equal(first.catalog.games.length, 1);
+  assert.equal(first.catalog.games[0]?.slug, "marvels-wolverine");
+  assert.equal(first.catalog.games[0]?.name, "Marvel's Wolverine");
+  assert.deepEqual(
+    first.catalog.games[0]?.titles.map((title) => title.id),
+    ["PPSA03617", "PPSA03671"],
+  );
+
+  const previous: Catalog = {
+    generatedAt: "2026-10-20T06:43:00.000Z",
+    games: [
+      {
+        slug: "marvel-s-wolverine",
+        name: "Marvel's Wolverine",
+        titles: [{ id: "PPSA03671", platform: "ps5", name: "Marvel's Wolverine" }],
+        reports: wolverine.filter((report) => report.titleId === "PPSA03671").map((report) => ({
+          emulator: report.emulator,
+          titleId: report.titleId,
+          status: report.status,
+          updatedAt: report.updatedAt,
+          sourceUrl: report.sourceUrl,
+        })),
+        history: [],
+      },
+      {
+        slug: "marvels-wolverine",
+        name: "Marvels Wolverine",
+        titles: [{ id: "PPSA03617", platform: "ps5", name: "Marvels Wolverine" }],
+        reports: [
+          {
+            emulator: "kytyps5",
+            titleId: "PPSA03617",
+            status: "nothing",
+            updatedAt: "2026-10-20",
+            sourceUrl: "https://github.com/InoriRus/KytyPS5",
+          },
+        ],
+        history: [],
+      },
+    ],
+  };
+  const second = assembleCatalog(wolverine, new Map(), previous, "2026-10-21T06:43:00.000Z");
+  assert.equal(second.catalog.games.length, 1);
+  assert.equal(second.catalog.games[0]?.slug, "marvels-wolverine");
+  assert.deepEqual(second.catalog.games[0]?.aliases, ["marvel-s-wolverine"]);
+  assert.equal(normalizedTitleCollisions(second.catalog.games).length, 0);
+});
+
+test("sync logs normalized titles that stayed on separate pages", () => {
+  const lines: string[] = [];
+  const original = console.log;
+  console.log = (...args: unknown[]) => {
+    lines.push(args.map(String).join(" "));
+  };
+  try {
+    const reports: RawReport[] = [
+      {
+        emulator: "shadps4",
+        titleId: "CUSA00001",
+        name: "DOOM Demo",
+        platform: "ps4",
+        status: "menus",
+        updatedAt: "2026-10-20",
+        sourceUrl: "https://github.com/shadps4-compatibility/shadps4-game-compatibility/issues/1",
+      },
+      {
+        emulator: "shadps4",
+        titleId: "CUSA00002",
+        name: "DOOM (1993)",
+        platform: "ps4",
+        status: "playable",
+        updatedAt: "2026-10-20",
+        sourceUrl: "https://github.com/shadps4-compatibility/shadps4-game-compatibility/issues/2",
+      },
+    ];
+    const titles = new Map([
+      ["CUSA00001", { name: "DOOM", regionRank: 0 }],
+      ["CUSA00002", { name: "DOOM", regionRank: 0 }],
+    ]);
+    const { catalog } = assembleCatalog(reports, titles, null, "2026-10-21T06:43:00.000Z");
+    assert.equal(catalog.games.length, 2);
+    assert.match(lines.join("\n"), /normalized title collision "doom":/);
+  } finally {
+    console.log = original;
+  }
 });
 
 test("appends history when a later snapshot changes status", () => {

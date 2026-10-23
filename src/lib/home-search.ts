@@ -12,6 +12,12 @@ export type HomeSearch = {
 const QUERY_LIMIT = 120;
 export const SEARCH_PAGE_SIZE = 40;
 
+export function searchCountLabel(shown: number, total: number): string {
+  const games = shown === 1 ? "game" : "games";
+  const text = `${shown.toLocaleString()} ${games}`;
+  return shown === total ? text : `${text} of ${total.toLocaleString()}`;
+}
+
 export function readHomeSearch(input: {
   q?: string | string[];
   platform?: string | string[];

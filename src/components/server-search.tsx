@@ -2,7 +2,7 @@ import Link from "next/link";
 import { EmptySearch } from "@/components/empty-search";
 import { StatusBadge } from "@/components/status-badge";
 import { EMULATORS } from "@/lib/emulators";
-import { homeSearchHref, SEARCH_PAGE_SIZE, type HomeSearch } from "@/lib/home-search";
+import { homeSearchHref, SEARCH_PAGE_SIZE, searchCountLabel, type HomeSearch } from "@/lib/home-search";
 import { STATUS_LABEL } from "@/lib/status";
 import { EMULATOR_IDS, PLATFORMS, STATUSES, type SearchEntry } from "@/lib/types";
 
@@ -64,8 +64,7 @@ export function ServerSearch({
       {filtered ? (
         <>
           <p className="text-sm text-muted-foreground">
-            {matches.length.toLocaleString()} games
-            {matches.length !== total ? ` of ${total.toLocaleString()}` : ""}
+            {searchCountLabel(matches.length, total)}
           </p>
           {slice.length === 0 ? (
             <EmptySearch query={search.q} />

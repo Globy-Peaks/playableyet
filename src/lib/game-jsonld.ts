@@ -1,13 +1,20 @@
 import { EMULATORS, PLATFORM_LABEL } from "@/lib/emulators";
+import { alternateNamesForTitle } from "@/lib/search-filters";
 import { statusPhrase } from "@/lib/status-copy";
 import type { Game } from "@/lib/types";
 
 export function videoGameJsonLd(game: Game, pageUrl: string, description: string) {
   const platforms = [...new Set(game.titles.map((title) => PLATFORM_LABEL[title.platform]))];
+  const alternateName = alternateNamesForTitle(game.name);
   return {
     "@context": "https://schema.org",
     "@type": "VideoGame",
     name: game.name,
+    ...(alternateName.length === 1
+      ? { alternateName: alternateName[0] }
+      : alternateName.length > 1
+        ? { alternateName }
+        : {}),
     url: pageUrl,
     description,
     identifier: game.titles.map((title) => ({

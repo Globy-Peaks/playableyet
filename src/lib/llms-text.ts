@@ -52,7 +52,7 @@ PlayableYet copies public reports from RPCS3, shadPS4, fpPS4, SharpEmu, KytyPS5,
 - [Sitemap](${origin}/sitemap.xml): Every game page, plus platform, project, status, and status pagination pages.
 - [Search index](${origin}/search-index.json): Public catalog fields used by the browser. Built from the snapshot the site is serving. No email addresses or watch tokens.
 - [Sync status](${origin}/api/status): Public JSON with \`generatedAt\`, \`lastSyncAttemptAt\`, \`lastSyncOk\`, \`gameCount\`, and per-source \`id\`, \`ok\`, \`count\`, \`asOf\`, and \`carried\`. When \`ok\` is false and \`carried\` is true, \`count\` is the number of reports kept from an earlier fetch, and those rows are older than \`generatedAt\`. \`asOf\` is the last successful fetch, or null when that time was not recorded. No email addresses or tokens.
-- Search ignores accents, so \`/?q=yotei\` matches “Yōtei”. \`/rss\` and \`/rss.xml\` permanently redirect to \`/feed.xml\`. The page head includes \`<link rel="alternate" type="application/rss+xml" href="/feed.xml">\`.
+- Search matches whole words and word prefixes. It ignores accents and punctuation, so \`/?q=yotei\` matches “Yōtei” and \`/?q=yakuza+dead+souls\` matches “Yakuza: Dead Souls”. Abbreviations such as \`gta\`, \`rdr\`, \`tlou\`, \`gow\`, \`gt7\`, \`des\`, \`mgs\`, and \`ff\` match those series. \`/rss\` and \`/rss.xml\` permanently redirect to \`/feed.xml\`. The page head includes \`<link rel="alternate" type="application/rss+xml" href="/feed.xml">\`.
 
 ## Platform and project pages
 

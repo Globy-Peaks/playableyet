@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EMULATORS } from "@/lib/emulators";
-import { SEARCH_PAGE_SIZE } from "@/lib/home-search";
+import { SEARCH_PAGE_SIZE, searchCountLabel } from "@/lib/home-search";
 import { matchesSearchFilters } from "@/lib/search-filters";
 import { STATUS_LABEL } from "@/lib/status";
 import { EMULATOR_IDS, PLATFORMS, STATUSES, type SearchEntry } from "@/lib/types";
@@ -139,8 +139,7 @@ export function GameBrowser() {
       {entries && entries.length > 0 ? (
         <>
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            {filtered.length.toLocaleString()} games
-            {filtered.length !== entries.length ? ` of ${entries.length.toLocaleString()}` : ""}
+            {searchCountLabel(filtered.length, entries.length)}
           </p>
           {slice.length === 0 ? (
             <EmptySearch query={query} />

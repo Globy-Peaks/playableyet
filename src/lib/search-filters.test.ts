@@ -3,7 +3,7 @@ import test from "node:test";
 import { readCatalogFile } from "./catalog-store";
 import { withCanonicalSlugs } from "./slugs";
 import { emulatorPlatform } from "./emulators";
-import { matchesSearchFilters, normalizeSearchText } from "./search-filters";
+import { alternateNamesForTitle, matchesSearchFilters, normalizeSearchText } from "./search-filters";
 import { toSearchIndex } from "./sync/assemble";
 import { EMULATOR_IDS, PLATFORMS, STATUSES, type SearchEntry } from "./types";
 
@@ -129,6 +129,73 @@ test("multi-word queries match titles with punctuation between the words", () =>
   assert.equal(matchesSearchFilters(serial, { query: "blus30001" }), true);
 });
 
+test("abbreviations match the series and letters do not cross words", () => {
+  const mahjong = entry({
+    slug: "mahjong-taikai-iv",
+    name: "Mahjong Taikai IV",
+    platforms: ["ps3"],
+    reports: [{ emulator: "rpcs3", status: "playable" }],
+  });
+  const tactics = entry({
+    slug: "metal-slug-tactics",
+    name: "Metal Slug Tactics",
+    platforms: ["ps4"],
+    reports: [{ emulator: "shadps4", status: "ingame" }],
+  });
+  const dog = entry({
+    slug: "dog-the-dog",
+    name: "DOG THE DOG TAKES THE HINDMOST.",
+    platforms: ["ps4"],
+    reports: [{ emulator: "shadps4", status: "nothing" }],
+  });
+  const gta = entry({
+    slug: "grand-theft-auto-v",
+    name: "Grand Theft Auto V",
+    platforms: ["ps4"],
+    reports: [{ emulator: "shadps4", status: "ingame" }],
+  });
+  const vice = entry({
+    slug: "grand-theft-auto-vice-city",
+    name: "Grand Theft Auto: Vice City",
+    platforms: ["ps4"],
+    reports: [{ emulator: "shadps4", status: "menus" }],
+  });
+  const tlou = entry({
+    slug: "the-last-of-us",
+    name: "The Last of Us",
+    platforms: ["ps3"],
+    reports: [{ emulator: "rpcs3", status: "ingame" }],
+  });
+  const destiny = entry({
+    slug: "destiny",
+    name: "Destiny",
+    platforms: ["ps4"],
+    reports: [{ emulator: "shadps4", status: "ingame" }],
+  });
+  assert.equal(matchesSearchFilters(mahjong, { query: "gta" }), false);
+  assert.equal(matchesSearchFilters(tactics, { query: "gta" }), false);
+  assert.equal(matchesSearchFilters(dog, { query: "gta" }), false);
+  assert.equal(matchesSearchFilters(gta, { query: "gta" }), true);
+  assert.equal(matchesSearchFilters(gta, { query: "gta v" }), true);
+  assert.equal(matchesSearchFilters(gta, { query: "GTA V" }), true);
+  assert.equal(matchesSearchFilters(vice, { query: "gta" }), true);
+  assert.equal(matchesSearchFilters(vice, { query: "gta v" }), false);
+  assert.equal(matchesSearchFilters(gta, { query: "grand theft auto v" }), true);
+  assert.equal(matchesSearchFilters(tlou, { query: "tlou" }), true);
+  assert.equal(matchesSearchFilters(tlou, { query: "TLOU" }), true);
+  assert.equal(matchesSearchFilters(destiny, { query: "des" }), false);
+  assert.equal(matchesSearchFilters(destiny, { query: "destiny" }), true);
+  assert.deepEqual(alternateNamesForTitle("Grand Theft Auto V"), ["GTA V"]);
+  assert.deepEqual(alternateNamesForTitle("The Last of Us Part II"), ["TLOU Part II"]);
+  assert.deepEqual(alternateNamesForTitle("God of War III"), ["GoW III"]);
+  assert.deepEqual(alternateNamesForTitle("Gran Turismo 7"), ["GT7"]);
+  assert.deepEqual(alternateNamesForTitle("Demon's Souls"), ["DeS"]);
+  assert.deepEqual(alternateNamesForTitle("METAL GEAR SOLID V: THE PHANTOM PAIN"), ["MGS V THE PHANTOM PAIN"]);
+  assert.deepEqual(alternateNamesForTitle("Red Dead Redemption 2"), ["RDR 2"]);
+  assert.deepEqual(alternateNamesForTitle("FINAL FANTASY VII"), ["FF VII"]);
+  assert.deepEqual(alternateNamesForTitle("World of Final Fantasy"), []);
+});
+
 test("yotei matches Ghost of Yōtei", () => {
   const catalog = readCatalogFile();
   assert.ok(catalog);
@@ -156,6 +223,31 @@ test("snapshot titles match the multi-word queries that punctuation used to hide
   assert.ok(slugs("demons souls").includes("demons-souls"));
   assert.ok(slugs("demon's souls").includes("demons-souls"));
   assert.ok(slugs("ghost of yotei").includes("ghost-of-yotei"));
+  assert.deepEqual(slugs("gta v"), ["grand-theft-auto-v"]);
+  assert.ok(slugs("gta").includes("grand-theft-auto-v"));
+  assert.equal(slugs("gta").includes("mahjong-taikai-iv"), false);
+  assert.equal(slugs("gta").some((slug) => slug.includes("metal-slug")), false);
+  assert.equal(slugs("gta").includes("dog-the-dog-takes-the-hindmost"), false);
+  assert.ok(slugs("tlou").includes("the-last-of-us"));
+  assert.ok(slugs("rdr").includes("red-dead-redemption"));
+  assert.ok(slugs("gow").includes("god-of-war"));
+  assert.ok(slugs("gt7").includes("gran-turismo-7"));
+  assert.ok(slugs("des").includes("demons-souls") || slugs("des").includes("demon-s-souls"));
+  assert.ok(slugs("mgs").includes("metal-gear-solid-v-the-phantom-pain"));
+  assert.ok(slugs("ff").includes("final-fantasy-vii"));
+  assert.equal(slugs("des").includes("destiny"), false);
+});
+
+test("every snapshot game still matches its own name and title ids", () => {
+  const catalog = readCatalogFile();
+  assert.ok(catalog);
+  const entries = toSearchIndex(catalog);
+  for (const item of entries) {
+    assert.equal(matchesSearchFilters(item, { query: item.name }), true, item.name);
+    for (const id of item.ids) {
+      assert.equal(matchesSearchFilters(item, { query: id }), true, `${item.slug} ${id}`);
+    }
+  }
 });
 
 test("the published index yields only Dreaming Sarah for AnyPS5 playable", () => {
