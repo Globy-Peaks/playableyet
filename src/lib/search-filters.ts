@@ -1,5 +1,9 @@
 import { emulatorPlatform } from "@/lib/emulators";
+import { SEARCH_ALIASES, expandAliasWords } from "@/lib/search-aliases";
 import { PLATFORMS, type Platform, type SearchEntry } from "@/lib/types";
+
+const ALIAS_TOKENS = new Set(SEARCH_ALIASES.map((alias) => alias.token));
+const MIN_PREFIX = 3;
 
 export type SearchFilters = {
   query?: string;
@@ -56,7 +60,7 @@ function romanToken(token: string): string | null {
 }
 
 /**
- * Search key: accents, apostrophes, and other punctuation do not separate words.
+ * Search key: accents, apostrophes, and other punctuation do not change the words.
  * "Yakuza: Dead Souls" and "yakuza dead souls" share a key. "II" and "2" do too.
  */
 export function normalizeSearchText(value: string): string {
@@ -74,20 +78,71 @@ export function normalizeSearchText(value: string): string {
     .join(" ");
 }
 
-function searchTextMatches(query: string, fields: string[]): boolean {
+function wordMatches(titleWord: string, queryWord: string): boolean {
+  if (titleWord === queryWord) return true;
+  // Abbreviations are exact tokens. "des" must not also prefix "destiny".
+  if (ALIAS_TOKENS.has(queryWord) || queryWord.length < MIN_PREFIX) return false;
+  return titleWord.startsWith(queryWord);
+}
+
+/** Contiguous whole words, or a prefix of each word. Letters do not cross a word boundary. */
+function wordsMatch(queryWords: string[], titleWords: string[]): boolean {
+  if (queryWords.length === 0 || queryWords.length > titleWords.length) return false;
+  for (let start = 0; start <= titleWords.length - queryWords.length; start += 1) {
+    let matched = true;
+    for (let index = 0; index < queryWords.length; index += 1) {
+      if (!wordMatches(titleWords[start + index] ?? "", queryWords[index] ?? "")) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) return true;
+  }
+  return false;
+}
+
+function matchesName(query: string, name: string): boolean {
   const needle = normalizeSearchText(query);
   if (!needle) return true;
-  const compactNeedle = needle.replaceAll(" ", "");
-  return fields.some((field) => {
-    const haystack = normalizeSearchText(field);
-    if (haystack.includes(needle)) return true;
-    return compactNeedle.length > 0 && haystack.replaceAll(" ", "").includes(compactNeedle);
-  });
+  const raw = needle.split(" ");
+  const expanded = expandAliasWords(raw);
+  const words = normalizeSearchText(name).split(" ").filter(Boolean);
+  if (wordsMatch(raw, words)) return true;
+  return expanded.join(" ") !== raw.join(" ") && wordsMatch(expanded, words);
+}
+
+function matchesTitleId(query: string, ids: string[]): boolean {
+  const needle = normalizeSearchText(query).replaceAll(" ", "");
+  if (needle.length < 4) return false;
+  return ids.some((id) => normalizeSearchText(id).replaceAll(" ", "").includes(needle));
+}
+
+const ORIGINAL_TOKEN = /[^\p{L}\p{N}]+/u;
+
+/** Schema.org alternateName values, such as "GTA V" for Grand Theft Auto V. */
+export function alternateNamesForTitle(name: string): string[] {
+  const normalized = normalizeSearchText(name).split(" ").filter(Boolean);
+  const original = name
+    .replace(/[\u2122\u00AE\u00A9]/g, "")
+    .replace(/['’‘ʼ`´]/g, "")
+    .split(ORIGINAL_TOKEN)
+    .filter(Boolean);
+  if (normalized.length === 0 || normalized.length !== original.length) return [];
+  const names: string[] = [];
+  for (const alias of SEARCH_ALIASES) {
+    const expansion = alias.expansion.split(" ");
+    if (expansion.length > normalized.length) continue;
+    const matched = expansion.every((word, index) => normalized[index] === word);
+    if (!matched) continue;
+    const rest = original.slice(expansion.length);
+    names.push([alias.label, ...rest].join(" "));
+  }
+  return names;
 }
 
 export function matchesSearchFilters(entry: SearchEntry, filters: SearchFilters): boolean {
   const query = filters.query?.trim() ?? "";
-  if (query && !searchTextMatches(query, [entry.name, ...entry.ids])) return false;
+  if (query && !matchesName(query, entry.name) && !matchesTitleId(query, entry.ids)) return false;
 
   const platform = filters.platform?.trim() ?? "";
   const emulator = filters.emulator?.trim() ?? "";

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { filterSearchEntries, homeSearchHref, isFilteredSearch, readHomeSearch, searchResultTitle } from "./home-search";
+import { filterSearchEntries, homeSearchHref, isFilteredSearch, readHomeSearch, searchCountLabel, searchResultTitle } from "./home-search";
 import type { SearchEntry } from "./types";
 
 const tales: SearchEntry = {
@@ -24,6 +24,13 @@ test("a q parameter is a filtered search and round-trips into the home URL", () 
     ["tales-of-berseria"],
   );
   assert.equal(filterSearchEntries([tales], readHomeSearch({ q: "missing-title" })).length, 0);
+});
+
+test("a single match uses the singular game label", () => {
+  assert.equal(searchCountLabel(1, 6069), `1 game of ${(6069).toLocaleString()}`);
+  assert.equal(searchCountLabel(2, 6069), `2 games of ${(6069).toLocaleString()}`);
+  assert.equal(searchCountLabel(0, 6069), `0 games of ${(6069).toLocaleString()}`);
+  assert.equal(searchCountLabel(6069, 6069), `${(6069).toLocaleString()} games`);
 });
 
 test("the bare home URL is not a search results page", () => {

@@ -1,7 +1,8 @@
 import type { Catalog, Game, HistoryEvent, RawReport, Report, SearchEntry, TitleRef } from "@/lib/types";
 import type { EmulatorId } from "@/lib/types";
-import { cleanDisplayName, isUsefulTitle, normalizeName, slugifyName, UnionFind } from "@/lib/identity";
-import { withCanonicalSlugs } from "@/lib/slugs";
+import { cleanDisplayName, groupKey, isUsefulTitle, slugifyName, UnionFind } from "@/lib/identity";
+import { slugForGroupedName, withCanonicalSlugs } from "@/lib/slugs";
+import { logNormalizedTitleCollisions, mergePunctuationVariants, preferPunctuatedName } from "@/lib/title-groups";
 import { bestStatus } from "@/lib/status";
 import type { TitleInfo } from "@/lib/sync/fetchers";
 
@@ -35,7 +36,7 @@ export function assembleCatalog(
       list.push(report.titleId);
       byConcept.set(conceptKey, list);
     }
-    const key = normalizeName(report.name ?? "");
+    const key = groupKey(report.name ?? "");
     if (key.length >= 4 && isUsefulTitle(report.name ?? "")) {
       const list = byName.get(key) ?? [];
       list.push(report.titleId);
@@ -79,8 +80,11 @@ export function assembleCatalog(
     }
     const previousGames = [...previousHits.values()];
     const anchor = previousGames.sort((a, b) => b.titles.length - a.titles.length)[0];
-    const name = chooseName(bucket, titles, anchor?.name);
-    const slug = anchor?.slug || slugifyName(name);
+    const name = preferPunctuatedName(chooseName(bucket, titles, anchor?.name), nameCandidates(bucket, titles, previousGames));
+    const desired = slugifyName(name);
+    const slug =
+      previousGames.find((game) => game.slug === desired)?.slug ??
+      slugForGroupedName(name, anchor?.slug, nameCandidates(bucket, titles, previousGames));
 
     const priorTitles = new Map<string, TitleRef>();
     for (const game of previousGames) {
@@ -161,9 +165,20 @@ export function assembleCatalog(
     });
   }
 
-  const catalog = withCanonicalSlugs({ generatedAt, games });
+  const catalog = withCanonicalSlugs(mergePunctuationVariants({ generatedAt, games }));
   catalog.games.sort((a, b) => a.name.localeCompare(b.name) || a.slug.localeCompare(b.slug));
+  logNormalizedTitleCollisions(catalog.games);
   return { catalog, changes };
+}
+
+function nameCandidates(bucket: RawReport[], titles: Map<string, TitleInfo>, previousGames: Game[]): string[] {
+  const names = previousGames.map((game) => game.name);
+  for (const report of bucket) {
+    if (report.name) names.push(report.name);
+    const info = titles.get(report.titleId);
+    if (info?.name) names.push(info.name);
+  }
+  return names;
 }
 
 function chooseName(bucket: RawReport[], titles: Map<string, TitleInfo>, previousName?: string): string {

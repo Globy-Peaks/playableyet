@@ -24,4 +24,28 @@ test("the feed escapes markup and only includes real from-to changes", () => {
   assert.match(xml, /<link>https:\/\/playableyet.vercel.app\/games\/knack-2<\/link>/);
   assert.equal(xml.includes("<script"), false);
   assert.equal(escapeXml("<tag>"), "&lt;tag&gt;");
+  assert.match(xml, /<pubDate>Fri, 16 Oct 2026 12:00:00 GMT<\/pubDate>/);
+  assert.match(xml, /<lastBuildDate>Sat, 17 Oct 2026 06:43:39 GMT<\/lastBuildDate>/);
+});
+
+test("a change recorded on the sync day uses that sync time", () => {
+  const generatedAt = "2026-10-21T06:43:00.000Z";
+  const item: FeedItem = {
+    slug: "grand-theft-auto-v",
+    name: "Grand Theft Auto V",
+    emulator: "shadps4",
+    editions: [{ id: "CUSA00411" }],
+    at: "2026-10-21",
+    status: "ingame",
+    from: "menus",
+  };
+  const xml = rssXml([item], "https://playableyet.vercel.app", generatedAt);
+  const syncTime = new Date(generatedAt).toUTCString();
+  assert.match(xml, new RegExp(`<lastBuildDate>${syncTime}</lastBuildDate>`));
+  assert.match(xml, new RegExp(`<pubDate>${syncTime}</pubDate>`));
+  const older = rssXml([{ ...item, at: "2026-10-18" }], "https://playableyet.vercel.app", generatedAt);
+  assert.match(older, /<pubDate>Sun, 18 Oct 2026 12:00:00 GMT<\/pubDate>/);
+  const pub = older.match(/<pubDate>([^<]+)<\/pubDate>/)?.[1] ?? "";
+  const built = older.match(/<lastBuildDate>([^<]+)<\/lastBuildDate>/)?.[1] ?? "";
+  assert.ok(Date.parse(pub) <= Date.parse(built));
 });

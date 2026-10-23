@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizeName, slugifyName, splitTitleAndId, UnionFind } from "./identity";
+import { groupKey, normalizeName, slugifyName, splitTitleAndId, UnionFind } from "./identity";
 
 test("normalizes titles for grouping", () => {
   assert.equal(normalizeName("RESOGUN™ (USA)"), "resogun");
@@ -10,6 +10,11 @@ test("normalizes titles for grouping", () => {
   assert.equal(slugifyName("Pokémon"), "pokemon");
   assert.equal(slugifyName("Æon Flux"), "aeon-flux");
   assert.notEqual(normalizeName("The Last of Us"), normalizeName("The Last of Us Remastered"));
+  assert.equal(groupKey("Marvel's Wolverine"), "marvels wolverine");
+  assert.equal(groupKey("Marvels Wolverine"), groupKey("Marvel's Wolverine"));
+  assert.equal(groupKey("Journey: Collector's Edition"), groupKey("Journey Collector’s Edition"));
+  assert.notEqual(normalizeName("Marvel's Wolverine"), normalizeName("Marvels Wolverine"));
+  assert.notEqual(groupKey("The Last of Us"), groupKey("The Last of Us Remastered"));
 });
 
 test("splits issue titles", () => {

@@ -49,6 +49,17 @@ const SLUG_FOLDS: Record<string, string> = {
   Ŋ: "n",
 };
 
+const APOSTROPHE = /['’‘ʼ`´]/g;
+
+/**
+ * Grouping key. Apostrophes are removed instead of becoming their own word,
+ * so "Marvel's Wolverine" and "Marvels Wolverine" are one title.
+ * Other letters stay on normalizeName, which still turns "&" and ":" into spaces.
+ */
+export function groupKey(name: string): string {
+  return normalizeName(name.replace(APOSTROPHE, ""));
+}
+
 /** Letters for a URL slug: drop accents and apostrophes, then reuse title normalization. */
 export function slugifyName(name: string): string {
   const folded = name

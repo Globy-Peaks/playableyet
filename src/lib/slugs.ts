@@ -24,6 +24,21 @@ export function legacySlugifyName(name: string): string {
   return slug || "untitled";
 }
 
+/**
+ * Use the folded slug when `anchorSlug` is only the old apostrophe spelling of one of these names.
+ * A slug that was chosen for another reason, such as "a-exp", stays.
+ */
+export function slugForGroupedName(name: string, anchorSlug: string | undefined, names: string[]): string {
+  const desired = slugifyName(name);
+  if (!anchorSlug || anchorSlug === desired) return anchorSlug || desired;
+  for (const candidate of names) {
+    const legacy = legacySlugifyName(candidate);
+    if (legacy === slugifyName(candidate)) continue;
+    if (anchorSlug === legacy) return desired;
+  }
+  return anchorSlug;
+}
+
 function isLegacySlug(stored: string, legacy: string): boolean {
   if (stored === legacy) return true;
   const prefix = `${legacy}-`;

@@ -15,14 +15,14 @@ export function rssXml(items: FeedItem[], origin: string, generatedAt: string): 
     `<link>${escapeXml(`${origin}/changes`)}</link>`,
     `<description>Status changes recorded between PlayableYet snapshots. The first time a report is seen is not a change.</description>`,
     `<lastBuildDate>${rfc822(generatedAt)}</lastBuildDate>`,
-    ...shown.map((item) => itemXml(item, origin)),
+    ...shown.map((item) => itemXml(item, origin, generatedAt)),
     `</channel>`,
     `</rss>`,
   ];
   return channel.join("");
 }
 
-function itemXml(item: FeedItem, origin: string): string {
+function itemXml(item: FeedItem, origin: string, generatedAt: string): string {
   const from = item.from ? STATUS_LABEL[item.from] : "previous";
   const title = `${item.name}: ${from} to ${STATUS_LABEL[item.status]} on ${EMULATORS[item.emulator].name}`;
   const editions = formatEditionList(item.editions);
@@ -34,7 +34,7 @@ function itemXml(item: FeedItem, origin: string): string {
     `<title>${escapeXml(title)}</title>`,
     `<link>${escapeXml(link)}</link>`,
     `<guid isPermaLink="false">${escapeXml(`${item.slug}:${item.emulator}:${ids}:${item.at}:${item.from ?? ""}:${item.status}`)}</guid>`,
-    `<pubDate>${rfc822(item.at)}</pubDate>`,
+    `<pubDate>${rfc822(item.at, generatedAt)}</pubDate>`,
     `<description>${escapeXml(description)}</description>`,
     `</item>`,
   ].join("");
@@ -49,9 +49,15 @@ export function escapeXml(value: string): string {
     .replaceAll("'", "&apos;");
 }
 
-function rfc822(value: string): string {
-  const day = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00.000Z` : value;
-  const date = new Date(day);
+function rfc822(value: string, ceiling?: string): string {
+  const cap = ceiling ? new Date(ceiling) : undefined;
+  const capTime = cap && !Number.isNaN(cap.getTime()) ? cap : undefined;
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
+  let date: Date;
+  if (!dateOnly) date = new Date(value);
+  else if (capTime && ceiling?.slice(0, 10) === value) date = capTime;
+  else date = new Date(`${value}T12:00:00.000Z`);
   if (Number.isNaN(date.getTime())) return new Date(0).toUTCString();
+  if (capTime && date.getTime() > capTime.getTime()) date = capTime;
   return date.toUTCString();
 }
