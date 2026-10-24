@@ -3,7 +3,9 @@ import test from "node:test";
 import { readCatalogFile } from "./catalog-store";
 import { withCanonicalSlugs } from "./slugs";
 import { emulatorPlatform } from "./emulators";
+import { closestSearchEntries, filterSearchEntries, readHomeSearch } from "./home-search";
 import { alternateNamesForTitle, matchesSearchFilters, normalizeSearchText } from "./search-filters";
+import { publishCatalog } from "./title-groups";
 import { toSearchIndex } from "./sync/assemble";
 import { EMULATOR_IDS, PLATFORMS, STATUSES, type SearchEntry } from "./types";
 
@@ -127,6 +129,8 @@ test("multi-word queries match titles with punctuation between the words", () =>
   assert.equal(matchesSearchFilters(serial, { query: "BLUS30001" }), true);
   assert.equal(matchesSearchFilters(yakuza, { query: "BLUS30001" }), false);
   assert.equal(matchesSearchFilters(serial, { query: "blus30001" }), true);
+  assert.equal(matchesSearchFilters(yakuza, { query: "souls yakuza" }), true);
+  assert.equal(matchesSearchFilters(yakuza, { query: "yakuza destruction" }), false);
 });
 
 test("abbreviations match the series and letters do not cross words", () => {
@@ -196,6 +200,37 @@ test("abbreviations match the series and letters do not cross words", () => {
   assert.deepEqual(alternateNamesForTitle("World of Final Fantasy"), []);
 });
 
+test("words match in any order and a phrase stays ahead of a scattered title", () => {
+  const tools = entry({
+    slug: "tools",
+    name: "Ratchet & Clank: Tools of Destruction",
+    ids: ["BCES00052"],
+    platforms: ["ps3"],
+    reports: [{ emulator: "rpcs3", status: "ingame" }],
+  });
+  const scattered = entry({
+    slug: "scattered",
+    name: "Destruction of Gallery Tools",
+    platforms: ["ps3"],
+    reports: [{ emulator: "rpcs3", status: "ingame" }],
+  });
+  const phrase = entry({
+    slug: "phrase",
+    name: "Alpha Tools of Destruction",
+    platforms: ["ps3"],
+    reports: [{ emulator: "rpcs3", status: "ingame" }],
+  });
+  assert.equal(matchesSearchFilters(tools, { query: "ratchet tools of destruction" }), true);
+  assert.equal(matchesSearchFilters(tools, { query: "ratchet clank tools" }), true);
+  assert.equal(matchesSearchFilters(tools, { query: "ratchet tools of oblivion" }), false);
+  assert.equal(matchesSearchFilters(tools, { query: "clanktools" }), false);
+  const ranked = filterSearchEntries([scattered, phrase, tools], readHomeSearch({ q: "tools of destruction" }));
+  assert.deepEqual(
+    ranked.map((item) => item.slug),
+    ["phrase", "tools", "scattered"],
+  );
+});
+
 test("yotei matches Ghost of Yōtei", () => {
   const catalog = readCatalogFile();
   assert.ok(catalog);
@@ -236,6 +271,41 @@ test("snapshot titles match the multi-word queries that punctuation used to hide
   assert.ok(slugs("mgs").includes("metal-gear-solid-v-the-phantom-pain"));
   assert.ok(slugs("ff").includes("final-fantasy-vii"));
   assert.equal(slugs("des").includes("destiny"), false);
+});
+
+test("a skipped word still finds Ratchet & Clank: Tools of Destruction on one page", () => {
+  const file = readCatalogFile();
+  assert.ok(file);
+  const entries = toSearchIndex(publishCatalog(file));
+  const slugs = (query: string) =>
+    filterSearchEntries(entries, readHomeSearch({ q: query })).map((item) => item.slug);
+  const tools = [
+    "ratchet-clank-tools-of-destruction",
+    "ratchet-clank-tools-of-destruction-demo",
+  ];
+  assert.deepEqual(slugs("ratchet tools of destruction"), tools);
+  assert.deepEqual(slugs("tools of destruction"), tools);
+  assert.deepEqual(slugs("ratchet clank tools"), tools);
+  assert.equal(slugs("ratchet tools of destruction").includes("ratchet-clank-future-tools-of-destruction"), false);
+  assert.deepEqual(slugs("gta v"), ["grand-theft-auto-v"]);
+  assert.deepEqual(slugs("v gta"), ["grand-theft-auto-v"]);
+  assert.ok(slugs("gta").includes("grand-theft-auto-v"));
+  assert.ok(slugs("gta").includes("grand-theft-auto-vice-city"));
+  assert.equal(slugs("gta v").includes("grand-theft-auto-vice-city"), false);
+  assert.equal(slugs("gta").includes("mahjong-taikai-iv"), false);
+  assert.ok(slugs("yakuza dead souls").includes("yakuza-dead-souls"));
+  assert.ok(slugs("yotei").includes("ghost-of-yotei"));
+  assert.ok(slugs("ghost of yotei").includes("ghost-of-yotei"));
+  const closest = closestSearchEntries(entries, readHomeSearch({ q: "ratchet tools of oblivion" }));
+  assert.deepEqual(
+    closest.map((item) => item.slug),
+    tools,
+  );
+  assert.equal(closestSearchEntries(entries, readHomeSearch({ q: "zzzzqqqq" })).length, 0);
+  assert.equal(
+    closestSearchEntries(entries, readHomeSearch({ q: "ratchet tools of oblivion", platform: "ps5" })).length,
+    0,
+  );
 });
 
 test("every snapshot game still matches its own name and title ids", () => {

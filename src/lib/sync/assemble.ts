@@ -1,8 +1,8 @@
 import type { Catalog, Game, HistoryEvent, RawReport, Report, SearchEntry, TitleRef } from "@/lib/types";
 import type { EmulatorId } from "@/lib/types";
 import { cleanDisplayName, groupKey, isUsefulTitle, slugifyName, UnionFind } from "@/lib/identity";
-import { slugForGroupedName, withCanonicalSlugs } from "@/lib/slugs";
-import { logNormalizedTitleCollisions, mergePunctuationVariants, preferPunctuatedName } from "@/lib/title-groups";
+import { slugForGroupedName } from "@/lib/slugs";
+import { logNormalizedTitleCollisions, logRegionalVariantCollisions, preferPunctuatedName, publishCatalog } from "@/lib/title-groups";
 import { bestStatus } from "@/lib/status";
 import type { TitleInfo } from "@/lib/sync/fetchers";
 
@@ -165,9 +165,10 @@ export function assembleCatalog(
     });
   }
 
-  const catalog = withCanonicalSlugs(mergePunctuationVariants({ generatedAt, games }));
+  const catalog = publishCatalog({ generatedAt, games });
   catalog.games.sort((a, b) => a.name.localeCompare(b.name) || a.slug.localeCompare(b.slug));
   logNormalizedTitleCollisions(catalog.games);
+  logRegionalVariantCollisions(catalog.games);
   return { catalog, changes };
 }
 

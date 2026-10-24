@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Catalog, RawReport } from "../types";
-import { normalizedTitleCollisions } from "../title-groups";
+import { normalizedTitleCollisions, regionalVariantCollisions } from "../title-groups";
 import { assembleCatalog } from "./assemble";
 
 const reports: RawReport[] = [
@@ -208,6 +208,90 @@ test("sync logs normalized titles that stayed on separate pages", () => {
     const { catalog } = assembleCatalog(reports, titles, null, "2026-10-21T06:43:00.000Z");
     assert.equal(catalog.games.length, 2);
     assert.match(lines.join("\n"), /normalized title collision "doom":/);
+  } finally {
+    console.log = original;
+  }
+});
+
+test("curated regional titles merge and other Future subtitles stay in the log", () => {
+  const lines: string[] = [];
+  const original = console.log;
+  console.log = (...args: unknown[]) => {
+    lines.push(args.map(String).join(" "));
+  };
+  try {
+    const regional: RawReport[] = [
+      {
+        emulator: "rpcs3",
+        titleId: "BCUS98127",
+        name: "Ratchet & Clank Future: Tools of Destruction",
+        platform: "ps3",
+        status: "ingame",
+        updatedAt: "2026-10-20",
+        sourceUrl: "https://rpcs3.net/compatibility",
+      },
+      {
+        emulator: "rpcs3",
+        titleId: "BCES00052",
+        name: "Ratchet & Clank: Tools of Destruction",
+        platform: "ps3",
+        status: "ingame",
+        updatedAt: "2026-10-20",
+        sourceUrl: "https://rpcs3.net/compatibility",
+      },
+      {
+        emulator: "rpcs3",
+        titleId: "BLUS30011",
+        name: "Example Future: Subtitle Game",
+        platform: "ps3",
+        status: "ingame",
+        updatedAt: "2026-10-20",
+        sourceUrl: "https://rpcs3.net/compatibility",
+      },
+      {
+        emulator: "rpcs3",
+        titleId: "BLES30011",
+        name: "Example: Subtitle Game",
+        platform: "ps3",
+        status: "ingame",
+        updatedAt: "2026-10-20",
+        sourceUrl: "https://rpcs3.net/compatibility",
+      },
+      {
+        emulator: "shadps4",
+        titleId: "CUSA03550",
+        name: "Grand Theft Auto 3",
+        platform: "ps4",
+        status: "nothing",
+        updatedAt: "2026-10-20",
+        sourceUrl: "https://github.com/shadps4-compatibility/shadps4-game-compatibility/issues/3",
+      },
+      {
+        emulator: "shadps4",
+        titleId: "CUSA26613",
+        name: "Grand Theft Auto III – The Definitive Edition",
+        platform: "ps4",
+        status: "menus",
+        updatedAt: "2026-10-20",
+        sourceUrl: "https://github.com/shadps4-compatibility/shadps4-game-compatibility/issues/4",
+      },
+    ];
+    const { catalog } = assembleCatalog(regional, new Map(), null, "2026-10-21T06:43:00.000Z");
+    const tools = catalog.games.find((game) => game.slug === "ratchet-clank-tools-of-destruction");
+    assert.equal(tools?.name, "Ratchet & Clank: Tools of Destruction");
+    assert.deepEqual(
+      tools?.titles.map((title) => title.id),
+      ["BCES00052", "BCUS98127"],
+    );
+    assert.deepEqual(tools?.aliases, ["ratchet-clank-future-tools-of-destruction"]);
+    assert.equal(catalog.games.filter((game) => game.name.includes("Example")).length, 2);
+    assert.equal(catalog.games.filter((game) => game.slug.startsWith("grand-theft-auto")).length, 2);
+    assert.match(
+      lines.join("\n"),
+      /regional variant collision "example subtitle game": example-future-subtitle-game, example-subtitle-game/,
+    );
+    assert.equal(lines.some((line) => line.includes("tools of destruction")), false);
+    assert.equal(regionalVariantCollisions(catalog.games).some((item) => item.key.includes("grand theft auto")), false);
   } finally {
     console.log = original;
   }
