@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EMULATORS } from "@/lib/emulators";
-import { SEARCH_PAGE_SIZE, searchCountLabel } from "@/lib/home-search";
-import { matchesSearchFilters } from "@/lib/search-filters";
+import { closestSearchEntries, filterSearchEntries, readHomeSearch, SEARCH_PAGE_SIZE, searchCountLabel } from "@/lib/home-search";
 import { STATUS_LABEL } from "@/lib/status";
 import { EMULATOR_IDS, PLATFORMS, STATUSES, type SearchEntry } from "@/lib/types";
 import { EmptySearch } from "@/components/empty-search";
@@ -58,11 +57,12 @@ export function GameBrowser() {
 
   const filtered = useMemo(() => {
     if (!entries) return [];
-    const needle = query.trim().toLowerCase();
-    return entries.filter((entry) =>
-      matchesSearchFilters(entry, { query: needle, platform, emulator, status }),
-    );
+    return filterSearchEntries(entries, readHomeSearch({ q: query, platform, emulator, status }));
   }, [entries, query, platform, emulator, status]);
+  const closest = useMemo(() => {
+    if (!entries || filtered.length > 0) return [];
+    return closestSearchEntries(entries, readHomeSearch({ q: query, platform, emulator, status }));
+  }, [entries, filtered.length, query, platform, emulator, status]);
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pages);
@@ -142,7 +142,7 @@ export function GameBrowser() {
             {searchCountLabel(filtered.length, entries.length)}
           </p>
           {slice.length === 0 ? (
-            <EmptySearch query={query} />
+            <EmptySearch query={query} closest={closest} />
           ) : (
             <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
               {slice.map((entry) => (

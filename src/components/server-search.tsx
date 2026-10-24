@@ -10,10 +10,12 @@ export function ServerSearch({
   search,
   matches,
   total,
+  closest = [],
 }: {
   search: HomeSearch;
   matches: SearchEntry[];
   total: number;
+  closest?: SearchEntry[];
 }) {
   const filtered = Boolean(search.q || search.platform || search.emulator || search.status || search.page > 1);
   const pages = Math.max(1, Math.ceil(matches.length / SEARCH_PAGE_SIZE));
@@ -67,7 +69,7 @@ export function ServerSearch({
             {searchCountLabel(matches.length, total)}
           </p>
           {slice.length === 0 ? (
-            <EmptySearch query={search.q} />
+            <EmptySearch query={search.q} closest={closest} />
           ) : (
             <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
               {slice.map((entry) => (

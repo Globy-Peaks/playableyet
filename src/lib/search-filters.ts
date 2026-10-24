@@ -101,14 +101,79 @@ function wordsMatch(queryWords: string[], titleWords: string[]): boolean {
   return false;
 }
 
-function matchesName(query: string, name: string): boolean {
+type QueryPlan = {
+  words: string[];
+};
+
+function queryPlans(query: string): QueryPlan[] {
   const needle = normalizeSearchText(query);
-  if (!needle) return true;
-  const raw = needle.split(" ");
+  if (!needle) return [];
+  const raw = needle.split(" ").filter(Boolean);
+  if (raw.length === 0) return [];
   const expanded = expandAliasWords(raw);
-  const words = normalizeSearchText(name).split(" ").filter(Boolean);
-  if (wordsMatch(raw, words)) return true;
-  return expanded.join(" ") !== raw.join(" ") && wordsMatch(expanded, words);
+  const plans = [{ words: raw }];
+  if (expanded.join(" ") !== raw.join(" ")) plans.push({ words: expanded });
+  return plans;
+}
+
+/** Each query word may use one title word. Prefixes do not share that word. */
+function matchedWordCount(queryWords: string[], titleWords: string[]): number {
+  if (queryWords.length === 0 || titleWords.length === 0) return 0;
+  const candidates = queryWords.map((queryWord) => {
+    const indexes: number[] = [];
+    for (let index = 0; index < titleWords.length; index += 1) {
+      if (wordMatches(titleWords[index] ?? "", queryWord)) indexes.push(index);
+    }
+    return indexes;
+  });
+  const owner = new Array<number>(titleWords.length).fill(-1);
+  const seen = new Array<number>(titleWords.length).fill(-1);
+  const visit = (queryIndex: number, mark: number): boolean => {
+    for (const titleIndex of candidates[queryIndex] ?? []) {
+      if (seen[titleIndex] === mark) continue;
+      seen[titleIndex] = mark;
+      const current = owner[titleIndex] ?? -1;
+      if (current < 0 || visit(current, mark)) {
+        owner[titleIndex] = queryIndex;
+        return true;
+      }
+    }
+    return false;
+  };
+  let matched = 0;
+  for (let index = 0; index < queryWords.length; index += 1) {
+    if (visit(index, index)) matched += 1;
+  }
+  return matched;
+}
+
+/**
+ * 2: the query is the title, a contiguous phrase, or a title ID.
+ * 1: every query word appears somewhere in the title.
+ * 0: not a match.
+ * Exact and phrase share a rank so existing phrase results keep their order.
+ */
+export function searchMatchRank(entry: SearchEntry, query: string): number {
+  const plans = queryPlans(query);
+  if (plans.length === 0) return 2;
+  const titleWords = normalizeSearchText(entry.name).split(" ").filter(Boolean);
+  let rank = 0;
+  for (const plan of plans) {
+    const phrase = plan.words.join(" ");
+    if (phrase === titleWords.join(" ") || wordsMatch(plan.words, titleWords)) rank = Math.max(rank, 2);
+    else if (matchedWordCount(plan.words, titleWords) === plan.words.length) rank = Math.max(rank, 1);
+  }
+  if (rank === 0 && matchesTitleId(query, entry.ids)) return 2;
+  return rank;
+}
+
+/** How many query words (or alias-expansion words) land on distinct title words. */
+export function partialSearchScore(query: string, name: string): number {
+  const plans = queryPlans(query);
+  const titleWords = normalizeSearchText(name).split(" ").filter(Boolean);
+  let best = 0;
+  for (const plan of plans) best = Math.max(best, matchedWordCount(plan.words, titleWords));
+  return best;
 }
 
 function matchesTitleId(query: string, ids: string[]): boolean {
@@ -142,7 +207,7 @@ export function alternateNamesForTitle(name: string): string[] {
 
 export function matchesSearchFilters(entry: SearchEntry, filters: SearchFilters): boolean {
   const query = filters.query?.trim() ?? "";
-  if (query && !matchesName(query, entry.name) && !matchesTitleId(query, entry.ids)) return false;
+  if (query && searchMatchRank(entry, query) === 0) return false;
 
   const platform = filters.platform?.trim() ?? "";
   const emulator = filters.emulator?.trim() ?? "";

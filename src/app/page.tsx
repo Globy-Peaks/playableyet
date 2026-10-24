@@ -12,7 +12,7 @@ import { EMULATORS } from "@/lib/emulators";
 import { newlyPlayable, statusChanges, summarize, type FeedItem } from "@/lib/feeds";
 import { formatPlayablePercent, emulatorPath } from "@/lib/hubs";
 import { serializeJsonLd } from "@/lib/game-jsonld";
-import { filterSearchEntries, homeSearchHref, readHomeSearch, searchResultTitle } from "@/lib/home-search";
+import { closestSearchEntries, filterSearchEntries, homeSearchHref, readHomeSearch, searchResultTitle } from "@/lib/home-search";
 import { explainSources, staleSourceMessages } from "@/lib/source-freshness";
 import { SITE_DESCRIPTION, siteUrl } from "@/lib/site";
 import { homeJsonLd } from "@/lib/site-jsonld";
@@ -50,6 +50,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const jsonLd = serializeJsonLd(homeJsonLd(siteUrl(), SITE_DESCRIPTION, shown));
   const entries = toSearchIndex(catalog);
   const matches = filterSearchEntries(entries, search);
+  const closest = matches.length === 0 ? closestSearchEntries(entries, search) : [];
   const title = searchResultTitle(search);
   const sourceNotes = staleSourceMessages(explainSources(syncStatus, catalog), catalog.generatedAt);
   const staleSources = new Set(sourceNotes.map((note) => note.id));
@@ -138,7 +139,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       <HubNav />
 
       <section className="space-y-4">
-        <ServerSearch search={search} matches={matches} total={entries.length} />
+        <ServerSearch search={search} matches={matches} total={entries.length} closest={closest} />
         <div className="client-search space-y-4">
           <div>
             <h2 className="text-xl font-semibold tracking-tight">All tracked games</h2>

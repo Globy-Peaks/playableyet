@@ -1,9 +1,17 @@
 import { groupKey, normalizeName, slugifyName } from "@/lib/identity";
+import { TITLE_GROUP_ALIASES, type TitleGroupAlias } from "@/lib/title-group-aliases";
 import { withCanonicalSlugs } from "@/lib/slugs";
 import type { Catalog, Game, HistoryEvent, Report, TitleRef } from "@/lib/types";
 
 const HISTORY_CAP = 40;
 const PUNCTUATION = /['’‘ʼ`´:]/g;
+
+/**
+ * Series labels inserted in one region's title.
+ * "Ratchet & Clank Future: Tools of Destruction" and
+ * "Ratchet & Clank: Tools of Destruction" share a key once "future" is gone.
+ */
+const SERIES_SUBTITLES = new Set(["future"]);
 
 export type TitleCollision = {
   key: string;
@@ -35,6 +43,49 @@ export function logNormalizedTitleCollisions(games: Game[]): void {
   }
 }
 
+/** Grouping key with a regional series subtitle removed. The sync log uses this. */
+export function regionalVariantKey(name: string): string {
+  return groupKey(name)
+    .split(" ")
+    .filter((word) => word && !SERIES_SUBTITLES.has(word))
+    .join(" ");
+}
+
+/**
+ * Separate pages whose titles match once a series subtitle such as "Future" is removed.
+ * Curated groups are merged first, so this list is what still needs a look.
+ */
+export function regionalVariantCollisions(games: Game[]): TitleCollision[] {
+  const byKey = new Map<string, Game[]>();
+  for (const game of games) {
+    const key = regionalVariantKey(game.name);
+    if (key.length < 4) continue;
+    const list = byKey.get(key) ?? [];
+    list.push(game);
+    byKey.set(key, list);
+  }
+  const collisions: TitleCollision[] = [];
+  for (const [key, group] of byKey) {
+    if (group.length < 2) continue;
+    const keys = new Set(group.map((game) => groupKey(game.name)));
+    if (keys.size < 2) continue;
+    collisions.push({ key, slugs: group.map((game) => game.slug).sort() });
+  }
+  collisions.sort((a, b) => a.key.localeCompare(b.key) || a.slugs[0].localeCompare(b.slugs[0]));
+  return collisions;
+}
+
+export function logRegionalVariantCollisions(games: Game[]): void {
+  for (const collision of regionalVariantCollisions(games)) {
+    console.log(`regional variant collision "${collision.key}": ${collision.slugs.join(", ")}`);
+  }
+}
+
+/** Punctuation folding, then the curated regional titles, then one slug per page. */
+export function publishCatalog(catalog: Catalog): Catalog {
+  return withCanonicalSlugs(mergeRegionalVariants(mergePunctuationVariants(catalog)));
+}
+
 /**
  * Fold games whose titles differ only by apostrophes or punctuation into one page.
  * Identical normalized names stay separate and are left for the sync log.
@@ -57,6 +108,58 @@ export function mergePunctuationVariants(catalog: Catalog): Catalog {
     games.push(replacements.get(index) ?? game);
   });
   return { ...catalog, games };
+}
+
+type RegionalGroup = {
+  indexes: number[];
+  name: string;
+};
+
+/**
+ * Fold curated regional titles onto one page. Demos stay in their own groups.
+ * Anything not on the list stays split and can show up in the sync log.
+ */
+export function mergeRegionalVariants(catalog: Catalog): Catalog {
+  const groups = regionalGroups(catalog.games);
+  if (groups.length === 0) return catalog;
+  const published = withCanonicalSlugs(catalog);
+  const skip = new Set<number>();
+  const replacements = new Map<number, Game>();
+  for (const group of groups) {
+    const games = group.indexes.map((index) => published.games[index]).filter((game): game is Game => Boolean(game));
+    if (games.length < 2) continue;
+    replacements.set(group.indexes[0], mergeGameGroup(games, group.name));
+    for (const index of group.indexes.slice(1)) skip.add(index);
+  }
+  const games: Game[] = [];
+  catalog.games.forEach((game, index) => {
+    if (skip.has(index)) return;
+    games.push(replacements.get(index) ?? game);
+  });
+  return { ...catalog, games };
+}
+
+function regionalGroups(games: Game[]): RegionalGroup[] {
+  const keyToAlias = new Map<string, TitleGroupAlias>();
+  for (const alias of TITLE_GROUP_ALIASES) {
+    for (const spelling of [alias.name, ...alias.variants]) {
+      keyToAlias.set(groupKey(spelling), alias);
+    }
+  }
+  const buckets = new Map<TitleGroupAlias, number[]>();
+  games.forEach((game, index) => {
+    const alias = keyToAlias.get(groupKey(game.name));
+    if (!alias) return;
+    const list = buckets.get(alias) ?? [];
+    list.push(index);
+    buckets.set(alias, list);
+  });
+  const groups: RegionalGroup[] = [];
+  for (const [alias, indexes] of buckets) {
+    if (indexes.length < 2) continue;
+    groups.push({ indexes, name: alias.name });
+  }
+  return groups;
 }
 
 /** Prefer the official apostrophe or colon when both spellings are the same title. */
@@ -96,8 +199,8 @@ function punctuationGroups(games: Game[]): number[][] {
   return groups;
 }
 
-function mergeGameGroup(games: Game[]): Game {
-  const preferred = preferPunctuatedName(games[0]?.name ?? "", games.map((game) => game.name));
+function mergeGameGroup(games: Game[], preferredName?: string): Game {
+  const preferred = preferPunctuatedName(preferredName || games[0]?.name || "", games.map((game) => game.name));
   const slug = slugifyName(preferred);
   const aliases = [
     ...new Set(games.flatMap((game) => [game.slug, ...(game.aliases ?? [])])),

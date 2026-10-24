@@ -1,5 +1,8 @@
-import { matchesSearchFilters } from "@/lib/search-filters";
+import { matchesSearchFilters, partialSearchScore, searchMatchRank } from "@/lib/search-filters";
 import type { SearchEntry } from "@/lib/types";
+
+const CLOSEST_LIMIT = 5;
+const CLOSEST_MIN_WORDS = 2;
 
 export type HomeSearch = {
   q: string;
@@ -56,7 +59,7 @@ export function homeSearchHref(search: HomeSearch, page = search.page): string {
 }
 
 export function filterSearchEntries(entries: SearchEntry[], search: HomeSearch): SearchEntry[] {
-  return entries.filter((entry) =>
+  const matched = entries.filter((entry) =>
     matchesSearchFilters(entry, {
       query: search.q,
       platform: search.platform,
@@ -64,6 +67,43 @@ export function filterSearchEntries(entries: SearchEntry[], search: HomeSearch):
       status: search.status,
     }),
   );
+  if (!search.q) return matched;
+  return matched
+    .map((entry, index) => ({ entry, index, rank: searchMatchRank(entry, search.q) }))
+    .sort((a, b) => b.rank - a.rank || a.index - b.index)
+    .map((item) => item.entry);
+}
+
+/**
+ * Titles that contain the most query words when nothing contains all of them.
+ * Full matches are omitted. Fewer than two shared words is not a suggestion.
+ */
+export function closestSearchEntries(entries: SearchEntry[], search: HomeSearch, limit = CLOSEST_LIMIT): SearchEntry[] {
+  const query = search.q.trim();
+  if (!query) return [];
+  const ranked: { entry: SearchEntry; score: number; index: number }[] = [];
+  entries.forEach((entry, index) => {
+    if (
+      !matchesSearchFilters(entry, {
+        platform: search.platform,
+        emulator: search.emulator,
+        status: search.status,
+      })
+    ) {
+      return;
+    }
+    if (searchMatchRank(entry, query) > 0) return;
+    const score = partialSearchScore(query, entry.name);
+    if (score < CLOSEST_MIN_WORDS) return;
+    ranked.push({ entry, score, index });
+  });
+  if (ranked.length === 0) return [];
+  const best = Math.max(...ranked.map((item) => item.score));
+  return ranked
+    .filter((item) => item.score === best)
+    .sort((a, b) => a.index - b.index)
+    .slice(0, limit)
+    .map((item) => item.entry);
 }
 
 function first(value: string | string[] | undefined): string {

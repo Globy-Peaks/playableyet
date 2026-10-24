@@ -29,7 +29,7 @@ import {
 import { titleEditionLabel } from "@/lib/title-edition";
 import { EMULATOR_IDS, PLATFORMS, type BringUp, type Game, type Platform } from "@/lib/types";
 import { readCatalogFile } from "@/lib/catalog-store";
-import { withCanonicalSlugs } from "@/lib/slugs";
+import { publishCatalog } from "@/lib/title-groups";
 
 async function resolveGame(slug: string): Promise<Game> {
   const game = await loadGame(slug);
@@ -40,7 +40,7 @@ async function resolveGame(slug: string): Promise<Game> {
 
 export async function generateStaticParams() {
   const catalog = readCatalogFile();
-  const games = catalog ? withCanonicalSlugs(catalog).games : [];
+  const games = catalog ? publishCatalog(catalog).games : [];
   const preferred = games.filter((game) =>
     game.reports.some((report) => report.titleId === "PPSA02929"),
   );
